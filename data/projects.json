@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Example Project",
+    "description": "Korte omschrijving van wat dit project doet en waarom het cool is.",
+    "status": "in progress",
+    "tags": ["typescript", "self-hosted"],
+    "url": "https://example.row1.dev",
+    "repo": "private"
+  }
+]

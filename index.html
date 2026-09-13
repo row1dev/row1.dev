@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>row1.dev</title>
+  <meta name="description" content="row1.dev — dev playground van Row1Dev." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+      </div>
+      <div class="terminal-body">
+        <div class="prompt">visitor@<span class="path">row1.dev</span>:~$ whoami</div>
+        <h1>Row1Dev<span class="cursor"></span></h1>
+        <p class="subtitle">
+          Dit is mijn dev-hoek van het internet. Hier bouw, breek en herbouw ik dingen.<br>
+          De echte projecten staan achter de login hieronder.
+        </p>
+        <div class="links">
+          <a class="btn primary" href="/app/">→ projecten (login vereist)</a>
+          <a class="btn" href="https://github.com/row1dev" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+    </div>
+    <footer>&copy; <span id="year"></span> Row1Dev — alle rechten voorbehouden.</footer>
+  </div>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
