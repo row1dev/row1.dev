@@ -1,10 +1,10 @@
 [
   {
-    "name": "Example Project",
-    "description": "Korte omschrijving van wat dit project doet en waarom het cool is.",
-    "status": "in progress",
-    "tags": ["typescript", "self-hosted"],
-    "url": "https://example.row1.dev",
-    "repo": "private"
+    "name": "row1.dev",
+    "description": "Deze site zelf — landingspagina met een afgeschermd projectenoverzicht, self-hosted via Cloudflare Workers.",
+    "status": "live",
+    "tags": ["html", "css", "cloudflare-workers"],
+    "url": "https://row1.dev",
+    "repo": "public"
   }
 ]
