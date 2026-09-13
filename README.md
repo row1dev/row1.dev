@@ -2,24 +2,25 @@
 
 Landingspagina + afgeschermde projectenlijst voor [row1.dev](https://row1.dev).
 
-- `index.html` — publieke landingspagina
-- `app/` — projectenoverzicht, afgeschermd via Cloudflare Access (alleen GitHub-login `row1dev`)
-- `data/projects.json` — bron voor de projectenlijst op `/app`
-- `assets/` — CSS/JS, geen build-stap nodig
+- `public/index.html` — publieke landingspagina
+- `public/app/` — projectenoverzicht, afgeschermd via Cloudflare Access (alleen GitHub-login `row1dev`)
+- `public/data/projects.json` — bron voor de projectenlijst op `/app`
+- `public/assets/` — CSS/JS, geen build-stap nodig
+- `wrangler.jsonc` — Cloudflare Workers static-assets config (deploy-doelwit: `public/`)
 
 ## Lokaal draaien
 
 Puur statische bestanden, dus elke simpele webserver volstaat:
 
 ```bash
-python3 -m http.server 8080
+cd public && python3 -m http.server 8080
 ```
 
 Open `http://localhost:8080`.
 
 ## Een project toevoegen
 
-Voeg een object toe aan [`data/projects.json`](data/projects.json):
+Voeg een object toe aan [`public/data/projects.json`](public/data/projects.json):
 
 ```json
 {
@@ -42,7 +43,9 @@ Cloudflare heeft Pages inmiddels samengevoegd met Workers. De statische site
 wordt gedeployed als "static assets" via [`wrangler.jsonc`](wrangler.jsonc),
 dat verwijst naar de `public/` map.
 
-1. Log in op [Cloudflare](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Import a repository** (Git).
+Huidige (2026) Cloudflare-dashboard flow:
+
+1. Log in op [Cloudflare](https://dash.cloudflare.com) → sidebar **Compute** → **Workers & Pages** → **Create** → **Import a repository** (Git).
 2. Selecteer deze repo (`row1dev/row1.dev`).
 3. Bij "Set up your application":
    - **Build command**: leeg laten
@@ -52,25 +55,29 @@ dat verwijst naar de `public/` map.
      komt straks alleen op `/app/*`, zie hieronder.
 4. **Deploy**. Elke push naar `main` deployt automatisch opnieuw.
 
+Live staat op: `row1-dev.<jouw-workers-subdomein>.workers.dev`.
+
 ## Domein koppelen (Hostnet → Cloudflare)
 
 Cloudflare Access (stap hieronder) vereist dat het domein als *zone* in Cloudflare
 zit, dus de nameservers moeten verhuizen:
 
-1. Cloudflare dashboard → **Add a site** → `row1.dev` → kies het gratis plan.
+1. Cloudflare dashboard → sidebar **Domains** → **Add a domain** → `row1.dev` → kies het gratis plan.
 2. Cloudflare toont 2 nameservers (bv. `xxx.ns.cloudflare.com`).
-3. Bij Hostnet: ga naar het domein `row1.dev` → **Nameservers wijzigen** → vul de
+3. Bij Hostnet: log in → domein `row1.dev` → **Nameservers wijzigen** → vul de
    twee Cloudflare-nameservers in (dit vervangt Hostnet's eigen DNS-beheer —
    je beheert DNS-records daarna in Cloudflare, niet meer bij Hostnet).
-4. Wachten tot Cloudflare "Active" toont voor de zone (kan tot 24u duren, meestal sneller).
-5. In je Worker-project: **Settings → Domains & Routes → Add → Custom domain** → voeg `row1.dev` toe.
+4. Wachten tot Cloudflare de zone als **Active** toont (kan tot 24u duren, meestal sneller).
+5. Sidebar **Compute** → **Workers & Pages** → open `row1-dev` → **Settings** tab
+   → **Domains & Routes** → **Add** → **Custom domain** → `row1.dev`.
 
 ## Login afschermen: Cloudflare Zero Trust Access
 
-1. [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com) → eenmalig een team-naam kiezen (gratis tot 50 gebruikers).
-2. **Settings → Authentication → Login methods** → voeg **GitHub** toe als identity provider
-   (hiervoor maak je een [GitHub OAuth App](https://github.com/settings/developers) aan onder het
-   `row1dev`-account; Cloudflare geeft de exacte callback-URL die je daar invult).
+1. Sidebar (onderaan, "Protect & connect") → **Zero Trust** → eenmalig een team-naam
+   kiezen (gratis tot 50 gebruikers).
+2. In Zero Trust: **Settings → Authentication → Login methods** → voeg **GitHub** toe
+   als identity provider (hiervoor maak je een [GitHub OAuth App](https://github.com/settings/developers)
+   aan onder het `row1dev`-account; Cloudflare geeft de exacte callback-URL die je daar invult).
 3. **Access → Applications → Add an application → Self-hosted**.
    - Domain: `row1.dev`, Path: `/app*`
    - Policy: **Allow**, Include → **Login Methods** = GitHub, én een regel
