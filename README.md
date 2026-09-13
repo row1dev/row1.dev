@@ -36,12 +36,21 @@ De broncode van projecten zelf staat **niet** in deze repo — die blijven in hu
 private repositories. Deze site toont alleen naam, beschrijving en (indien van
 toepassing) een link naar een live demo.
 
-## Deploy: Cloudflare Pages
+## Deploy: Cloudflare Workers (static assets)
 
-1. Log in op [Cloudflare](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
+Cloudflare heeft Pages inmiddels samengevoegd met Workers. De statische site
+wordt gedeployed als "static assets" via [`wrangler.jsonc`](wrangler.jsonc),
+dat verwijst naar de `public/` map.
+
+1. Log in op [Cloudflare](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Import a repository** (Git).
 2. Selecteer deze repo (`row1dev/row1.dev`).
-3. Build settings: framework preset **None**, build command **leeg laten**, build output directory **`/`**.
-4. Deploy. Elke push naar `main` deployt automatisch; PR's krijgen een preview-URL.
+3. Bij "Set up your application":
+   - **Build command**: leeg laten
+   - **Deploy command**: `npx wrangler deploy` (staat al goed als placeholder)
+   - **Protect with Cloudflare Access**: laat dit **uit** — dat zou de hele site
+     (inclusief de publieke landingspagina) achter een login zetten. De login
+     komt straks alleen op `/app/*`, zie hieronder.
+4. **Deploy**. Elke push naar `main` deployt automatisch opnieuw.
 
 ## Domein koppelen (Hostnet → Cloudflare)
 
@@ -54,7 +63,7 @@ zit, dus de nameservers moeten verhuizen:
    twee Cloudflare-nameservers in (dit vervangt Hostnet's eigen DNS-beheer —
    je beheert DNS-records daarna in Cloudflare, niet meer bij Hostnet).
 4. Wachten tot Cloudflare "Active" toont voor de zone (kan tot 24u duren, meestal sneller).
-5. In je Pages-project: **Custom domains** → voeg `row1.dev` toe. Cloudflare regelt de rest automatisch (het zit al in dezelfde zone).
+5. In je Worker-project: **Settings → Domains & Routes → Add → Custom domain** → voeg `row1.dev` toe.
 
 ## Login afschermen: Cloudflare Zero Trust Access
 
