@@ -4,7 +4,7 @@ async function loadProjects() {
 
   let projects = [];
   try {
-    const res = await fetch("/data/projects.json", { cache: "no-store" });
+    const res = await fetch("/app/data/projects.json", { cache: "no-store" });
     projects = await res.json();
   } catch (err) {
     console.error("Kon projecten niet laden:", err);

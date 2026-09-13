@@ -4,7 +4,7 @@ Landingspagina + afgeschermde projectenlijst voor [row1.dev](https://row1.dev).
 
 - `public/index.html` — publieke landingspagina
 - `public/app/` — projectenoverzicht, afgeschermd via Cloudflare Access (alleen GitHub-login `row1dev`)
-- `public/data/projects.json` — bron voor de projectenlijst op `/app`
+- `public/app/data/projects.json` — bron voor de projectenlijst op `/app`
 - `public/assets/` — CSS/JS, geen build-stap nodig
 - `wrangler.jsonc` — Cloudflare Workers static-assets config (deploy-doelwit: `public/`)
 
@@ -20,7 +20,7 @@ Open `http://localhost:8080`.
 
 ## Een project toevoegen
 
-Voeg een object toe aan [`public/data/projects.json`](public/data/projects.json):
+Voeg een object toe aan [`public/app/data/projects.json`](public/app/data/projects.json):
 
 ```json
 {
@@ -73,16 +73,32 @@ zit, dus de nameservers moeten verhuizen:
 
 ## Login afschermen: Cloudflare Zero Trust Access
 
+Genoemde paden zijn de actuele (2026) dashboard-navigatie, geverifieerd tegen de
+officiële [Cloudflare One docs](https://developers.cloudflare.com/cloudflare-one/).
+
 1. Sidebar (onderaan, "Protect & connect") → **Zero Trust** → eenmalig een team-naam
-   kiezen (gratis tot 50 gebruikers).
-2. In Zero Trust: **Settings → Authentication → Login methods** → voeg **GitHub** toe
-   als identity provider (hiervoor maak je een [GitHub OAuth App](https://github.com/settings/developers)
-   aan onder het `row1dev`-account; Cloudflare geeft de exacte callback-URL die je daar invult).
-3. **Access → Applications → Add an application → Self-hosted**.
-   - Domain: `row1.dev`, Path: `/app*`
-   - Policy: **Allow**, Include → **Login Methods** = GitHub, én een regel
-     **Emails** = jouw eigen e-mailadres (zodat alleen jij binnenkomt, ook al
-     staat GitHub als optie open).
+   kiezen (gratis tot 50 gebruikers). Je team-naam vind je terug onder
+   **Settings → Team name and domain**.
+2. **GitHub als identity provider**:
+   - Maak een [GitHub OAuth App](https://github.com/settings/developers) aan onder
+     het `row1dev`-account:
+     - **Homepage URL**: `https://<team-naam>.cloudflareaccess.com`
+     - **Authorization callback URL**: `https://<team-naam>.cloudflareaccess.com/cdn-cgi/access/callback`
+   - Noteer de **Client ID** en genereer een **Client secret**.
+   - In Cloudflare: **Zero Trust → Integrations → Identity providers → Add new
+     identity provider → GitHub** → vul Client ID + secret in → **Save** → **Finish
+     setup** (autoriseert de OAuth-app) → **Test** om te checken dat het werkt.
+3. **De Access-applicatie**:
+   - **Zero Trust → Access controls → Applications → Create new application →
+     Self-hosted and private → Add public hostname**
+   - **Domain**: `row1.dev` (uit de dropdown), **Path**: `app*`
+     (dekt `/app`, `/app/` en alles eronder, incl. `/app/data/projects.json`)
+   - Bij "Configure how users will authenticate": schakel alleen **GitHub** in
+     als identity provider voor deze app
+   - **Access policies**: maak een policy met **Action = Allow**, Include →
+     **Emails** = jouw eigen e-mailadres (zo kan alleen jij erdoorheen, ook al
+     staat GitHub als login-optie open voor iedereen met een GitHub-account)
+   - **Create**
 4. Klaar. Bezoekers die naar `row1.dev/app` gaan krijgen nu een Cloudflare-loginscherm
    voordat ze bij de statische pagina komen — geen custom auth-code nodig.
 
