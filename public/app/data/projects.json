@@ -3,8 +3,25 @@
     "name": "row1.dev",
     "description": "Deze site zelf — landingspagina met een afgeschermd projectenoverzicht, self-hosted via Cloudflare Workers.",
     "status": "live",
-    "tags": ["html", "css", "cloudflare-workers"],
+    "tags": [
+      "html",
+      "css",
+      "cloudflare-workers"
+    ],
     "url": "https://row1.dev",
     "repo": "public"
+  },
+  {
+    "name": "rowslow",
+    "description": "iOS-app die tijdens het hardlopen live hartslag uit een Bluetooth-band leest en hardop zegt wanneer je je doelzone verlaat. Hier staat alleen de website; de app zit in een eigen repo.",
+    "status": "wip",
+    "tags": [
+      "swift",
+      "swiftui",
+      "corebluetooth",
+      "ios"
+    ],
+    "url": "https://row1.dev/rowslow/",
+    "repo": "private"
   }
 ]

@@ -18,6 +18,19 @@ cd public && python3 -m http.server 8080
 
 Open `http://localhost:8080`.
 
+## Projectpagina's
+
+Projecten met een eigen webpagina krijgen een map onder `public/`, en staan live op
+een pad van deze site:
+
+| Project | Map | Live |
+|---|---|---|
+| willem | `public/willem/` | [row1.dev/willem/privacy/](https://row1.dev/willem/privacy/) |
+| rowslow | `public/rowslow/` | [row1.dev/rowslow/](https://row1.dev/rowslow/) |
+
+Links binnen zo'n map zijn absoluut vanaf de root (`/rowslow/privacy/`). De broncode van
+de apps zelf staat niet hier maar in een eigen repository.
+
 ## Een project toevoegen
 
 Voeg een object toe aan [`public/app/data/projects.json`](public/app/data/projects.json):
@@ -33,9 +46,10 @@ Voeg een object toe aan [`public/app/data/projects.json`](public/app/data/projec
 }
 ```
 
-De broncode van projecten zelf staat **niet** in deze repo — die blijven in hun eigen
-private repositories. Deze site toont alleen naam, beschrijving en (indien van
-toepassing) een link naar een live demo.
+De broncode van projecten zelf staat **niet** in deze repo — die blijft in een eigen
+private repository. Deze site toont alleen naam, beschrijving en (indien van toepassing)
+een link naar een live demo. Hoort er een webpagina bij, zet die dan onder
+`public/<project>/`.
 
 ## Deploy: Cloudflare Workers (static assets)
 
