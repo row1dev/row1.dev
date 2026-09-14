@@ -7,6 +7,8 @@ Landingspagina + afgeschermde projectenlijst voor [row1.dev](https://row1.dev).
 - `public/app/data/projects.json` — bron voor de projectenlijst op `/app`
 - `public/assets/` — CSS/JS, geen build-stap nodig
 - `wrangler.jsonc` — Cloudflare Workers static-assets config (deploy-doelwit: `public/`)
+- `apps/` — losse projecten, elk met een eigen Worker en eigen subdomein
+- `docs/PROJECTS.md` — hoe projecten zijn ingedeeld en hoe je ze losmaakt
 
 ## Lokaal draaien
 
@@ -17,6 +19,21 @@ cd public && python3 -m http.server 8080
 ```
 
 Open `http://localhost:8080`.
+
+## Projecten
+
+Elk project dat een eigen webpagina heeft, krijgt een eigen map onder `apps/` met een
+eigen `wrangler.jsonc`, een eigen Worker en een eigen subdomein. Die mappen delen
+bewust niets met deze site, zodat een project later zonder herschrijfwerk naar een eigen
+domein of een eigen repository kan. De regels staan in
+[`docs/PROJECTS.md`](docs/PROJECTS.md).
+
+| Project | Map | Live |
+|---|---|---|
+| row1.dev | `public/` | [row1.dev](https://row1.dev) |
+| rowslow | [`apps/rowslow/`](apps/rowslow/) | [rowslow.row1.dev](https://rowslow.row1.dev) |
+
+De broncode van de apps zelf staat niet hier maar in aparte repositories.
 
 ## Een project toevoegen
 
@@ -33,9 +50,10 @@ Voeg een object toe aan [`public/app/data/projects.json`](public/app/data/projec
 }
 ```
 
-De broncode van projecten zelf staat **niet** in deze repo — die blijven in hun eigen
-private repositories. Deze site toont alleen naam, beschrijving en (indien van
-toepassing) een link naar een live demo.
+De broncode van projecten zelf staat **niet** in deze repo — die blijft in een eigen
+private repository. Deze site toont alleen naam, beschrijving en (indien van toepassing)
+een link naar een live demo. Hoort er ook een webpagina bij het project, maak die dan aan
+onder `apps/` volgens [`docs/PROJECTS.md`](docs/PROJECTS.md).
 
 ## Deploy: Cloudflare Workers (static assets)
 

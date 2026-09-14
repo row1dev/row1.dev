@@ -6,5 +6,13 @@
     "tags": ["html", "css", "cloudflare-workers"],
     "url": "https://row1.dev",
     "repo": "public"
+  },
+  {
+    "name": "rowslow",
+    "description": "iOS-app die tijdens het hardlopen live hartslag uit een Bluetooth-band leest en hardop zegt wanneer je je doelzone verlaat. Hier staat alleen de website; de app zit in een eigen repo.",
+    "status": "wip",
+    "tags": ["swift", "swiftui", "corebluetooth", "ios"],
+    "url": "https://rowslow.row1.dev",
+    "repo": "private"
   }
 ]
