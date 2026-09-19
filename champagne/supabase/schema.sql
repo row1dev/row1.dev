@@ -30,9 +30,14 @@ create index if not exists tastings_created_idx
   on public.tastings (created_at desc);
 
 -- De app praat alleen server-side met Supabase, met de service role key.
--- RLS staat aan zonder policies: anon en authenticated komen er niet in,
--- de service role omzeilt RLS.
+-- RLS staat aan zonder policies: anon en authenticated komen er niet in.
 alter table public.tastings enable row level security;
+
+-- RLS omzeilen is niet genoeg: de rol heeft ook gewone tabelrechten nodig,
+-- anders krijg je "permission denied for table tastings". Alleen service_role
+-- krijgt ze, zodat een uitgelekte anon-sleutel nog steeds nergens bij kan.
+grant usage on schema public to service_role;
+grant all privileges on table public.tastings to service_role;
 
 -- Publieke bucket voor de foto's.
 insert into storage.buckets (id, name, public)

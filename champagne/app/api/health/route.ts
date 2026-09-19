@@ -115,10 +115,15 @@ export async function GET(request: Request) {
   try {
     const db = supabaseAdmin();
 
+    // Geen head-request: die geeft een lege foutmelding terug, en juist de
+    // tekst is hier het hele punt.
     const { error: tableError, count } = await db
       .from("tastings")
-      .select("id", { count: "exact", head: true });
-    report.tabel = tableError ? `FOUT: ${tableError.message}` : `ok, ${count ?? "?"} rijen`;
+      .select("id", { count: "exact" })
+      .limit(1);
+    report.tabel = tableError
+      ? `FOUT: ${tableError.message || tableError.code || "geen melding"}`
+      : `ok, ${count ?? "?"} rijen`;
 
     const { data: buckets, error: bucketError } = await db.storage.listBuckets();
     if (bucketError) {

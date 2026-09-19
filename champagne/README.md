@@ -16,6 +16,7 @@ sleutel in de URL.
 | `POST /api/tastings` | Nieuwe tasting (multipart: foto, naam, woord, cijfer, user) |
 | `GET /api/tastings?user_id=` | Tastings van één gebruiker |
 | `PATCH /api/admin/tastings/:id` | `note` bijwerken, met `x-admin-key` header |
+| `GET /api/health?key=<ADMIN_KEY>` | Diagnose: welke rol de service key heeft, of er witruimte omheen staat, of de tabel leesbaar is, of de bucket publiek is. Met `&write=1` loopt hij ook de hele opslagroute af en ruimt daarna zijn eigen testdata op. |
 
 De browser praat nooit rechtstreeks met Supabase. Alles loopt via de route
 handlers, die de service role key gebruiken — die key staat dus alleen op de
@@ -36,8 +37,13 @@ server.
 
 1. Maak een project aan.
 2. Draai [`supabase/schema.sql`](supabase/schema.sql) in de SQL editor. Dat maakt
-   de tabel `tastings`, de indexen, de checks, zet RLS aan en maakt de publieke
-   bucket `champagne-photos`.
+   de tabel `tastings`, de indexen, de checks, zet RLS aan, geeft `service_role`
+   rechten op de tabel en maakt de publieke bucket `champagne-photos`.
+
+   Die `grant` is geen formaliteit: RLS omzeilen is iets anders dan tabelrechten
+   hebben. Zonder de grant krijg je `permission denied for table tastings`,
+   terwijl foto's uploaden wél gewoon werkt — storage heeft zijn eigen
+   rechtensysteem.
 3. Haal de project-URL en de **service role** key op onder Project settings → API.
 
 ## Lokaal draaien
