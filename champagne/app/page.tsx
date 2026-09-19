@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AddTastingSheet } from "@/components/AddTastingSheet";
+import { Bubbles } from "@/components/Bubbles";
 import { NameGate } from "@/components/NameGate";
 import { TastingCard, TastingCardSkeleton } from "@/components/TastingCard";
 import type { Tasting } from "@/lib/types";
@@ -42,14 +43,15 @@ export default function HomePage() {
 
   return (
     <>
+      <Bubbles />
       <main className="mx-auto w-full max-w-md px-6 pt-12 pb-32">
         <header>
-          <p className="text-[11px] uppercase tracking-widest text-gold-500">
+          <p className="text-[11px] uppercase tracking-widest text-gold-700">
             {identity.displayName}
           </p>
-          <h1 className="mt-4 text-5xl leading-none tracking-wide text-cream">Champagne</h1>
+          <h1 className="mt-4 text-5xl leading-none tracking-wide text-ink-900">Champagne</h1>
           <div className="rule-gold mt-8" />
-          <p className="mt-6 text-sm leading-relaxed text-mist">
+          <p className="mt-6 text-sm leading-relaxed text-ink-700">
             {loading
               ? " "
               : tastings.length === 0
@@ -59,12 +61,12 @@ export default function HomePage() {
         </header>
 
         {loadError ? (
-          <div className="mt-10 border border-gold-500/25 bg-night-800/60 px-5 py-6">
-            <p className="text-sm leading-relaxed text-gold-300">{loadError}</p>
+          <div className="card-lift mt-10 rounded-sm border border-gold-200 bg-paper px-5 py-6">
+            <p className="text-sm leading-relaxed text-gold-700">{loadError}</p>
             <button
               type="button"
               onClick={() => void load()}
-              className="mt-4 text-[11px] uppercase tracking-widest text-mist/70 underline-offset-4 hover:text-cream hover:underline"
+              className="mt-4 text-[11px] uppercase tracking-widest text-ink-400 underline-offset-4 hover:text-ink-900 hover:underline"
             >
               Opnieuw proberen
             </button>
@@ -83,7 +85,7 @@ export default function HomePage() {
         </section>
 
         {!loading && tastings.length === 0 && !loadError ? (
-          <p className="mt-16 text-center font-serif text-xl tracking-wide text-mist/40">
+          <p className="mt-16 text-center font-serif text-2xl tracking-wide text-gold-500">
             Santé.
           </p>
         ) : null}
@@ -93,14 +95,14 @@ export default function HomePage() {
         type="button"
         aria-label="Champagne toevoegen"
         onClick={() => setSheetOpen(true)}
-        className="fixed right-6 bottom-8 z-40 flex size-16 items-center justify-center rounded-full border border-gold-500/60 bg-night-800 text-gold-300 shadow-[0_0_40px_rgba(198,161,91,0.25)] transition-transform active:scale-95"
+        className="fixed right-6 bottom-8 z-40 flex size-16 items-center justify-center rounded-full bg-gold-500 text-white shadow-[0_8px_28px_-6px_rgba(138,100,32,0.55)] transition-transform hover:bg-gold-600 active:scale-95"
         style={{ bottom: "calc(2rem + env(safe-area-inset-bottom))" }}
       >
         <svg viewBox="0 0 24 24" className="size-6" aria-hidden>
           <path
             d="M12 5v14M5 12h14"
             stroke="currentColor"
-            strokeWidth="1.25"
+            strokeWidth="1.5"
             strokeLinecap="round"
           />
         </svg>

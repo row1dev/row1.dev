@@ -21,15 +21,15 @@ export function AdminTable({
 }) {
   if (tastings.length === 0) {
     return (
-      <p className="mt-16 text-center font-serif text-xl tracking-wide text-mist/40">
+      <p className="mt-16 text-center font-serif text-2xl tracking-wide text-gold-500">
         Nog niets geproefd.
       </p>
     );
   }
 
   return (
-    <div className="mt-10 divide-y divide-gold-500/15 border-y border-gold-500/15">
-      <div className="hidden grid-cols-[5rem_1fr_4rem_9rem] gap-4 py-3 text-[11px] uppercase tracking-widest text-mist/50 sm:grid">
+    <div className="mt-10 divide-y divide-gold-200 border-y border-gold-200">
+      <div className="hidden grid-cols-[5rem_1fr_4rem_9rem] gap-4 py-3 text-[11px] uppercase tracking-widest text-ink-400 sm:grid">
         <span>Foto</span>
         <span>Wie &amp; wat</span>
         <span className="text-right">Cijfer</span>
@@ -45,29 +45,29 @@ export function AdminTable({
                 src={tasting.photo_url}
                 alt={tasting.name}
                 loading="lazy"
-                className="aspect-4/5 w-20 border border-gold-500/20 object-cover"
+                className="card-lift aspect-4/5 w-20 rounded-sm border border-gold-200 bg-paper object-cover"
               />
             </a>
 
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-widest text-gold-500">
+              <p className="text-[11px] uppercase tracking-widest text-gold-700">
                 {tasting.user_name}
               </p>
-              <h2 className="mt-1 truncate text-2xl leading-tight tracking-wide text-cream">
+              <h2 className="mt-1 truncate text-2xl leading-tight tracking-wide text-ink-900">
                 {tasting.name}
               </h2>
-              <p className="mt-2 font-serif text-2xl text-gold-400 lining-nums tabular-nums sm:hidden">
+              <p className="mt-2 font-serif text-2xl text-gold-600 lining-nums tabular-nums sm:hidden">
                 {formatScore(tasting.score)}
-                <span className="ml-3 font-sans text-[11px] uppercase tracking-widest text-mist/50">
+                <span className="ml-3 font-sans text-[11px] uppercase tracking-widest text-ink-400">
                   {dateTimeFormat.format(new Date(tasting.created_at))}
                 </span>
               </p>
             </div>
 
-            <p className="hidden text-right font-serif text-3xl font-light text-gold-400 lining-nums tabular-nums sm:block">
+            <p className="hidden text-right font-serif text-3xl font-normal text-gold-600 lining-nums tabular-nums sm:block">
               {formatScore(tasting.score)}
             </p>
-            <p className="hidden text-right text-[11px] uppercase tracking-widest text-mist/50 sm:block">
+            <p className="hidden text-right text-[11px] uppercase tracking-widest text-ink-400 sm:block">
               {dateTimeFormat.format(new Date(tasting.created_at))}
             </p>
           </div>
@@ -116,15 +116,15 @@ function NoteField({
       <div className="flex items-baseline justify-between gap-4">
         <label
           htmlFor={`note-${id}`}
-          className="text-[11px] uppercase tracking-widest text-mist/50"
+          className="text-[11px] uppercase tracking-widest text-ink-400"
         >
           Verhaaltje
         </label>
         <span className="text-[11px] uppercase tracking-widest" aria-live="polite">
-          {state === "saving" ? <span className="text-mist/50">Opslaan…</span> : null}
-          {state === "saved" ? <span className="text-gold-500">Bewaard</span> : null}
+          {state === "saving" ? <span className="text-ink-400">Opslaan…</span> : null}
+          {state === "saved" ? <span className="text-gold-700">Bewaard</span> : null}
           {state === "error" ? (
-            <span className="text-gold-300">Mislukt — klik weg om opnieuw te proberen</span>
+            <span className="text-gold-700">Mislukt — klik weg om opnieuw te proberen</span>
           ) : null}
         </span>
       </div>
@@ -138,7 +138,7 @@ function NoteField({
         }}
         onBlur={() => void save()}
         placeholder="Waar, met wie, en waarom dit cijfer…"
-        className="mt-3 w-full resize-y border border-gold-500/20 bg-night-800/60 px-4 py-3 text-sm leading-relaxed text-cream outline-hidden transition-colors placeholder:text-mist/30 focus:border-gold-500/50"
+        className="mt-3 w-full resize-y rounded-sm border border-gold-200 bg-paper px-4 py-3 text-sm leading-relaxed text-ink-900 outline-hidden transition-colors placeholder:text-ink-300 focus:border-gold-500"
       />
     </div>
   );

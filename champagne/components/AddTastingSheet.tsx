@@ -13,9 +13,9 @@ type Props = {
 };
 
 const fieldClass =
-  "mt-3 w-full border-b border-gold-500/30 bg-transparent pb-3 font-serif text-3xl tracking-wide text-cream outline-hidden transition-colors placeholder:text-mist/25 focus:border-gold-400";
+  "mt-3 w-full border-b border-gold-400 bg-transparent pb-3 font-serif text-3xl tracking-wide text-ink-900 outline-hidden transition-colors placeholder:text-ink-300 focus:border-gold-600";
 
-const labelClass = "block text-[11px] uppercase tracking-widest text-mist/70";
+const labelClass = "block text-[11px] uppercase tracking-widest text-ink-400";
 
 export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
   const [photo, setPhoto] = useState<File | null>(null);
@@ -103,14 +103,14 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-night-900">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-ivory">
       <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md px-6 pt-8 pb-16">
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl tracking-wide text-cream">Nieuwe fles</h2>
+          <h2 className="text-3xl tracking-wide text-ink-900">Nieuwe fles</h2>
           <button
             type="button"
             onClick={onClose}
-            className="-mr-2 p-2 text-[11px] uppercase tracking-widest text-mist/70 transition-colors hover:text-cream"
+            className="-mr-2 p-2 text-[11px] uppercase tracking-widest text-ink-400 transition-colors hover:text-ink-900"
           >
             Sluiten
           </button>
@@ -132,28 +132,31 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
             type="button"
             onClick={() => fileInput.current?.click()}
             disabled={resizing}
-            className="relative mt-3 flex aspect-4/5 w-full items-center justify-center overflow-hidden border border-gold-500/25 bg-night-800/60 transition-colors hover:border-gold-500/50"
+            className="card-lift relative mt-3 flex aspect-4/5 w-full items-center justify-center overflow-hidden rounded-sm border border-gold-200 bg-paper transition-colors hover:border-gold-400"
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={preview} alt="" className="h-full w-full object-cover" />
             ) : (
-              <span className="px-8 text-center font-serif text-xl tracking-wide text-mist/60">
-                Maak een foto
+              <span className="flex flex-col items-center gap-5 px-8 text-center">
+                <Flute />
+                <span className="font-serif text-xl tracking-wide text-ink-400">
+                  Maak een foto
+                </span>
               </span>
             )}
 
             {resizing ? (
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-night-900/80">
+              <span className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-ivory/85">
                 <Spinner />
-                <span className="text-[11px] uppercase tracking-widest text-mist/70">
+                <span className="text-[11px] uppercase tracking-widest text-ink-400">
                   Foto verkleinen
                 </span>
               </span>
             ) : null}
           </button>
           {preview && !resizing ? (
-            <p className="mt-3 text-[11px] uppercase tracking-widest text-mist/50">
+            <p className="mt-3 text-[11px] uppercase tracking-widest text-ink-400">
               Tik op de foto om opnieuw te kiezen
             </p>
           ) : null}
@@ -215,7 +218,7 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
         <button
           type="submit"
           disabled={submitting || resizing}
-          className="mt-14 flex w-full items-center justify-center gap-3 border border-gold-500/50 bg-gold-500/10 py-4 text-[11px] uppercase tracking-widest text-gold-300 transition-colors hover:bg-gold-500/20 disabled:opacity-50"
+          className="card-lift mt-14 flex w-full items-center justify-center gap-3 rounded-sm bg-ink-900 py-4 text-[11px] uppercase tracking-widest text-gold-100 transition-colors hover:bg-ink-700 disabled:opacity-40"
         >
           {submitting ? (
             <>
@@ -233,14 +236,42 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
 
 function FieldError({ message }: { message?: string | null }) {
   if (!message) return null;
-  return <p className="mt-4 text-sm leading-relaxed text-gold-300">{message}</p>;
+  return (
+    <p className="mt-4 rounded-sm border border-gold-200 bg-gold-100/60 px-4 py-3 text-sm leading-relaxed text-gold-700">
+      {message}
+    </p>
+  );
+}
+
+function Flute() {
+  return (
+    <svg
+      viewBox="0 0 24 42"
+      className="h-20 w-auto text-gold-400"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* kelk, met een ronde bodem die in de steel overloopt */}
+      <path d="M7.5 3.5h9l-1.05 14.7a3.45 3.45 0 0 1-6.9 0L7.5 3.5Z" />
+      {/* steel en voet */}
+      <path d="M12 21.6v15M8 37.2h8" />
+      {/* belletjes */}
+      <circle cx="10.9" cy="9.2" r="0.85" />
+      <circle cx="13.5" cy="12.8" r="0.65" />
+      <circle cx="10.6" cy="14.8" r="0.55" />
+    </svg>
+  );
 }
 
 function Spinner() {
   return (
     <span
       aria-hidden
-      className="inline-block size-4 animate-spin rounded-full border border-gold-500/30 border-t-gold-400"
+      className="inline-block size-4 animate-spin rounded-full border border-current/25 border-t-current"
     />
   );
 }

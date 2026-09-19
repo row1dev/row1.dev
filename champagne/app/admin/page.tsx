@@ -16,10 +16,10 @@ export default async function AdminPage({
   if (!isAdminKey(key)) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6">
-        <p className="text-[11px] uppercase tracking-widest text-gold-500">Admin</p>
-        <h1 className="mt-6 text-5xl leading-none tracking-wide text-cream">Gesloten</h1>
+        <p className="text-[11px] uppercase tracking-widest text-gold-700">Admin</p>
+        <h1 className="mt-6 text-5xl leading-none tracking-wide text-ink-900">Gesloten</h1>
         <div className="rule-gold my-8" />
-        <p className="text-sm leading-relaxed text-mist">
+        <p className="text-sm leading-relaxed text-ink-700">
           Deze pagina heeft een sleutel nodig: <code>/admin?key=…</code>
         </p>
       </main>
@@ -43,11 +43,11 @@ export default async function AdminPage({
   return (
     <main className="mx-auto w-full max-w-4xl px-6 pt-12 pb-24">
       <header>
-        <p className="text-[11px] uppercase tracking-widest text-gold-500">Admin</p>
-        <h1 className="mt-4 text-5xl leading-none tracking-wide text-cream">Alle flessen</h1>
+        <p className="text-[11px] uppercase tracking-widest text-gold-700">Admin</p>
+        <h1 className="mt-4 text-5xl leading-none tracking-wide text-ink-900">Alle flessen</h1>
         <div className="rule-gold mt-8" />
         {!error ? (
-          <p className="mt-6 text-sm leading-relaxed text-mist">
+          <p className="mt-6 text-sm leading-relaxed text-ink-700">
             {tastings.length} {tastings.length === 1 ? "tasting" : "tastings"}. Verhaaltjes
             worden bewaard zodra je het veld verlaat.
           </p>
@@ -55,7 +55,7 @@ export default async function AdminPage({
       </header>
 
       {error ? (
-        <p className="mt-10 border border-gold-500/25 bg-night-800/60 px-5 py-6 text-sm leading-relaxed text-gold-300">
+        <p className="card-lift mt-10 rounded-sm border border-gold-200 bg-paper px-5 py-6 text-sm leading-relaxed text-gold-700">
           {error}
         </p>
       ) : (
