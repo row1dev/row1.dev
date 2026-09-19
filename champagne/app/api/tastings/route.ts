@@ -12,6 +12,19 @@ function fail(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
+/**
+ * Databasefouten horen niet op het scherm van een bezoeker: die lekken
+ * schemadetails en zeggen niemand iets. Detail gaat naar de serverlog,
+ * de bezoeker krijgt iets leesbaars. De echte oorzaak staat in /api/health.
+ */
+function serverFail(context: string, detail: unknown) {
+  console.error(`[tastings] ${context}:`, detail);
+  return NextResponse.json(
+    { error: "Er ging iets mis aan onze kant. Probeer het zo nog eens." },
+    { status: 500 },
+  );
+}
+
 export async function GET(request: Request) {
   const userId = new URL(request.url).searchParams.get("user_id");
   if (!userId || !UUID.test(userId)) return fail("Ongeldige gebruiker.");
@@ -23,10 +36,10 @@ export async function GET(request: Request) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    if (error) return fail(error.message, 500);
+    if (error) return serverFail("ophalen mislukte", error);
     return NextResponse.json({ tastings: data ?? [] });
   } catch (err) {
-    return fail(err instanceof Error ? err.message : "Onbekende fout.", 500);
+    return serverFail("ophalen wierp een fout", err);
   }
 }
 
@@ -72,7 +85,7 @@ export async function POST(request: Request) {
         cacheControl: "31536000",
         upsert: false,
       });
-    if (uploadError) return fail(`Foto uploaden mislukte: ${uploadError.message}`, 500);
+    if (uploadError) return serverFail("foto uploaden mislukte", uploadError);
 
     const {
       data: { publicUrl },
@@ -94,11 +107,11 @@ export async function POST(request: Request) {
     if (error) {
       // Laat geen weesfoto achter als de rij niet wegschrijft.
       await db.storage.from(PHOTO_BUCKET).remove([path]);
-      return fail(error.message, 500);
+      return serverFail("opslaan mislukte", error);
     }
 
     return NextResponse.json({ tasting: data }, { status: 201 });
   } catch (err) {
-    return fail(err instanceof Error ? err.message : "Onbekende fout.", 500);
+    return serverFail("opslaan wierp een fout", err);
   }
 }

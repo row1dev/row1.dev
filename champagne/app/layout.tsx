@@ -18,6 +18,12 @@ const body = Inter({
 export const metadata: Metadata = {
   title: "Champagne",
   description: "Wat we dronken in de Champagne.",
+  // Zonder dit opent een icoon op je beginscherm alsnog in Safari met adresbalk.
+  appleWebApp: {
+    capable: true,
+    title: "Champagne",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {

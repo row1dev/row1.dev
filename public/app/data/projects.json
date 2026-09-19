@@ -13,8 +13,8 @@
   },
   {
     "name": "champagne",
-    "description": "Logboek voor wat we drinken in de Champagne: foto, naam en cijfer per fles, zonder accounts. Next.js met Supabase erachter.",
-    "status": "wip",
+    "description": "Logboek voor wat we drinken in de Champagne: foto, naam, het oordeel in één woord en een cijfer, zonder accounts. Next.js met Supabase erachter.",
+    "status": "live",
     "tags": [
       "next.js",
       "supabase",
