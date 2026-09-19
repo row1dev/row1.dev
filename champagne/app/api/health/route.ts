@@ -20,6 +20,73 @@ function keyRole(raw: string | undefined): string {
   }
 }
 
+/** De kleinst mogelijke geldige JPEG, voor de schrijftest. */
+const TINY_JPEG = Buffer.from(
+  "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a" +
+    "HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAA" +
+    "AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==",
+  "base64",
+);
+
+type Step = { stap: string; ok: boolean; detail?: string };
+
+async function writeTest(db: ReturnType<typeof supabaseAdmin>): Promise<Step[]> {
+  const steps: Step[] = [];
+  const path = `health/${crypto.randomUUID()}.jpg`;
+  let rowId: string | null = null;
+  let uploaded = false;
+
+  const up = await db.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, TINY_JPEG, { contentType: "image/jpeg", cacheControl: "60", upsert: false });
+  uploaded = !up.error;
+  steps.push({ stap: "foto uploaden", ok: uploaded, detail: up.error?.message });
+
+  const publicUrl = db.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+  if (uploaded) {
+    try {
+      const res = await fetch(publicUrl, { cache: "no-store" });
+      steps.push({
+        stap: "foto publiek opvragen",
+        ok: res.ok,
+        detail: res.ok ? `${res.status} ${res.headers.get("content-type")}` : `${res.status}`,
+      });
+    } catch (err) {
+      steps.push({
+        stap: "foto publiek opvragen",
+        ok: false,
+        detail: err instanceof Error ? err.message : "onbekend",
+      });
+    }
+  }
+
+  const row = await db
+    .from("tastings")
+    .insert({
+      user_id: "00000000-0000-4000-8000-000000000000",
+      user_name: "Zelftest",
+      name: "Zelftest",
+      word: "zelftest",
+      score: 1.0,
+      photo_url: publicUrl,
+    })
+    .select("id")
+    .single();
+  rowId = row.data?.id ?? null;
+  steps.push({ stap: "rij invoegen", ok: !row.error, detail: row.error?.message });
+
+  if (rowId) {
+    const del = await db.from("tastings").delete().eq("id", rowId);
+    steps.push({ stap: "testrij opruimen", ok: !del.error, detail: del.error?.message });
+  }
+  if (uploaded) {
+    const del = await db.storage.from(PHOTO_BUCKET).remove([path]);
+    steps.push({ stap: "testfoto opruimen", ok: !del.error, detail: del.error?.message });
+  }
+
+  return steps;
+}
+
 /**
  * Diagnose van de omgeving, achter dezelfde sleutel als /admin:
  *   /api/health?key=<ADMIN_KEY>
@@ -63,6 +130,11 @@ export async function GET(request: Request) {
         : found.public
           ? "ok, bucket is publiek"
           : `FOUT: bucket ${PHOTO_BUCKET} staat niet op publiek`;
+    }
+    // ?write=1 loopt exact de route van "fles bewaren" af: foto uploaden,
+    // publieke URL ophalen, rij invoegen — en ruimt daarna alles weer op.
+    if (new URL(request.url).searchParams.get("write") === "1") {
+      report.schrijftest = await writeTest(db);
     }
   } catch (err) {
     report.tabel = `FOUT: ${err instanceof Error ? err.message : "onbekend"}`;

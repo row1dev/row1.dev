@@ -80,7 +80,9 @@ export async function POST(request: Request) {
 
     const { error: uploadError } = await db.storage
       .from(PHOTO_BUCKET)
-      .upload(path, await photo.arrayBuffer(), {
+      // De Blob zelf doorgeven, niet een ArrayBuffer: dat is het pad dat
+      // supabase-js zelf documenteert en het zet de headers goed.
+      .upload(path, photo, {
         contentType: photo.type || "image/jpeg",
         cacheControl: "31536000",
         upsert: false,
