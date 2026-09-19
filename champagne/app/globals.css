@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  /* Boizel-palet: diep nachtblauw als basis, goud als enige accent. */
+  --color-night-900: #04060f;
+  --color-night-800: #070b1c;
+  --color-night-700: #0b1230;
+  --color-night-600: #121a3f;
+  --color-night-500: #1b2450;
+
+  --color-gold-500: #c6a15b;
+  --color-gold-400: #d9bd83;
+  --color-gold-300: #eadbb4;
+
+  --color-cream: #f2ece1;
+  --color-mist: #a9b0c8;
+
+  --font-serif: var(--font-display), "Cormorant Garamond", Georgia, serif;
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+
+  --tracking-widest: 0.28em;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-night-900);
+    color: var(--color-cream);
+    -webkit-font-smoothing: antialiased;
+    /* Subtiele gouden gloed bovenin, zoals licht op een fles. */
+    background-image:
+      radial-gradient(
+        120% 60% at 50% -10%,
+        rgba(198, 161, 91, 0.14) 0%,
+        rgba(198, 161, 91, 0) 60%
+      );
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 300;
+  }
+
+  ::selection {
+    background: rgba(198, 161, 91, 0.3);
+  }
+}
+
+@utility hairline {
+  border-color: rgba(198, 161, 91, 0.22);
+}
+
+/* Fijne gouden lijn met verloop, voor scheidingen. */
+@utility rule-gold {
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    rgba(198, 161, 91, 0),
+    rgba(198, 161, 91, 0.5),
+    rgba(198, 161, 91, 0)
+  );
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Skeleton met een goudkleurige glans die eroverheen loopt. */
+@utility shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-night-700);
+}
+
+@utility shimmer-overlay {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  animation: shimmer 1.8s infinite;
+  background-image: linear-gradient(
+    90deg,
+    rgba(198, 161, 91, 0) 0%,
+    rgba(198, 161, 91, 0.1) 50%,
+    rgba(198, 161, 91, 0) 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-overlay {
+    animation: none;
+  }
+}

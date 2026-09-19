@@ -12,6 +12,19 @@
     "repo": "public"
   },
   {
+    "name": "champagne",
+    "description": "Logboek voor wat we drinken in de Champagne: foto, naam en cijfer per fles, zonder accounts. Next.js met Supabase erachter.",
+    "status": "wip",
+    "tags": [
+      "next.js",
+      "supabase",
+      "tailwind",
+      "vercel"
+    ],
+    "url": "https://champagne.row1.dev",
+    "repo": "public"
+  },
+  {
     "name": "rowslow",
     "description": "iOS-app die tijdens het hardlopen live hartslag uit een Bluetooth-band leest en hardop zegt wanneer je je doelzone verlaat. Hier staat alleen de website; de app zit in een eigen repo.",
     "status": "wip",

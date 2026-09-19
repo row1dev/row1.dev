@@ -7,6 +7,7 @@ Landingspagina + afgeschermde projectenlijst voor [row1.dev](https://row1.dev).
 - `public/app/data/projects.json` — bron voor de projectenlijst op `/app`
 - `public/assets/` — CSS/JS, geen build-stap nodig
 - `wrangler.jsonc` — Cloudflare Workers static-assets config (deploy-doelwit: `public/`)
+- `champagne/` — Next.js-app voor [champagne.row1.dev](https://champagne.row1.dev), deploy op Vercel (eigen [README](champagne/README.md))
 
 ## Lokaal draaien
 
@@ -30,6 +31,14 @@ een pad van deze site:
 
 Links binnen zo'n map zijn absoluut vanaf de root (`/rowslow/privacy/`). De broncode van
 de apps zelf staat niet hier maar in een eigen repository.
+
+## champagne
+
+De enige app die wél in deze repo staat: [`champagne/`](champagne/) is een
+Next.js-app met Supabase erachter, los van de statische site en met een eigen
+deploy op Vercel (root directory `champagne`). Zie
+[`champagne/README.md`](champagne/README.md) voor de omgevingsvariabelen en het
+Supabase-schema.
 
 ## Een project toevoegen
 
