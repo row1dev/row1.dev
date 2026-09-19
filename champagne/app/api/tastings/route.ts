@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PHOTO_BUCKET, supabaseAdmin } from "@/lib/supabase";
-import { parseScore, validateName, validateScore } from "@/lib/validation";
+import { parseScore, validateName, validateScore, validateWord } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   try {
     const { data, error } = await supabaseAdmin()
       .from("tastings")
-      .select("id, user_id, user_name, name, score, photo_url, note, created_at")
+      .select("id, user_id, user_name, name, word, score, photo_url, note, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
   const userId = String(form.get("user_id") ?? "");
   const userName = String(form.get("user_name") ?? "").trim();
   const name = String(form.get("name") ?? "");
+  const word = String(form.get("word") ?? "");
   const score = String(form.get("score") ?? "");
   const photo = form.get("photo");
 
@@ -49,6 +50,9 @@ export async function POST(request: Request) {
 
   const nameError = validateName(name);
   if (nameError) return fail(nameError);
+
+  const wordError = validateWord(word);
+  if (wordError) return fail(wordError);
 
   const scoreError = validateScore(score);
   if (scoreError) return fail(scoreError);
@@ -80,10 +84,11 @@ export async function POST(request: Request) {
         user_id: userId,
         user_name: userName,
         name: name.trim(),
+        word: word.trim(),
         score: parseScore(score),
         photo_url: publicUrl,
       })
-      .select("id, user_id, user_name, name, score, photo_url, note, created_at")
+      .select("id, user_id, user_name, name, word, score, photo_url, note, created_at")
       .single();
 
     if (error) {

@@ -26,7 +26,10 @@ export function TastingCard({ tasting }: { tasting: Tasting }) {
           <h2 className="truncate text-2xl leading-tight tracking-wide text-ink-900">
             {tasting.name}
           </h2>
-          <p className="mt-1.5 text-[11px] uppercase tracking-widest text-ink-400">
+          <p className="mt-1 truncate font-serif text-xl italic tracking-wide text-gold-700">
+            &bdquo;{tasting.word}&rdquo;
+          </p>
+          <p className="mt-2 text-[11px] uppercase tracking-widest text-ink-400">
             {dateFormat.format(new Date(tasting.created_at))}
           </p>
         </div>

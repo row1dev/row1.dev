@@ -3,10 +3,20 @@ export const SCORE_FORBIDDEN_MESSAGE = "Nee, nee geen 8,5 schatjes. Leuk geprobe
 /** Precies één decimaal, met een komma: 0,0 t/m 10,0. */
 const SCORE_PATTERN = /^(?:[0-9]|10),[0-9]$/;
 
+/** De naam van de champagne. Meerdere woorden mogen hier wel. */
 export function validateName(raw: string): string | null {
   const name = raw.trim();
   if (!name) return "Vul de naam van de champagne in.";
-  if (/\s/.test(name)) return "Precies één woord graag. Geen spaties.";
+  if (name.length > 120) return "Dat is wel een erg lange naam.";
+  return null;
+}
+
+/** Het oordeel in één woord. Hier mag maar één woord staan. */
+export function validateWord(raw: string): string | null {
+  const word = raw.trim();
+  if (!word) return "Vul één woord in.";
+  if (/\s/.test(word)) return "Precies één woord graag. Geen spaties.";
+  if (word.length > 40) return "Dat is wel een erg lang woord.";
   return null;
 }
 

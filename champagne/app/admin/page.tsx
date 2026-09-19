@@ -32,7 +32,7 @@ export default async function AdminPage({
   try {
     const { data, error: queryError } = await supabaseAdmin()
       .from("tastings")
-      .select("id, user_id, user_name, name, score, photo_url, note, created_at")
+      .select("id, user_id, user_name, name, word, score, photo_url, note, created_at")
       .order("created_at", { ascending: false });
     if (queryError) throw new Error(queryError.message);
     tastings = (data ?? []) as Tasting[];

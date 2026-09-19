@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Identity } from "@/lib/use-identity";
 import type { Tasting } from "@/lib/types";
 import { resizeImage } from "@/lib/resize-image";
-import { validateName, validateScore } from "@/lib/validation";
+import { validateName, validateScore, validateWord } from "@/lib/validation";
 
 type Props = {
   identity: Identity;
@@ -23,6 +23,7 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
   const [resizing, setResizing] = useState(false);
 
   const [name, setName] = useState("");
+  const [word, setWord] = useState("");
   const [score, setScore] = useState("");
 
   const [errors, setErrors] = useState<Record<string, string | null>>({});
@@ -72,6 +73,7 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
     const next: Record<string, string | null> = {
       photo: photo ? null : "Voeg een foto toe.",
       name: validateName(name),
+      word: validateWord(word),
       score: validateScore(score),
     };
     setErrors(next);
@@ -83,6 +85,7 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
       form.set("user_id", identity.userId);
       form.set("user_name", identity.displayName);
       form.set("name", name.trim());
+      form.set("word", word.trim());
       form.set("score", score.trim());
       form.set("photo", photo!);
 
@@ -163,10 +166,10 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
           <FieldError message={errors.photo} />
         </div>
 
-        {/* 2. Naam */}
+        {/* 2. Naam van de champagne */}
         <div className="mt-12">
           <label htmlFor="tasting-name" className={labelClass}>
-            2 — Naam, één woord
+            2 — Naam van de champagne
           </label>
           <input
             id="tasting-name"
@@ -175,7 +178,7 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
             autoCapitalize="words"
             autoComplete="off"
             spellCheck={false}
-            placeholder="Boizel"
+            placeholder="Boizel Brut Réserve"
             className={fieldClass}
             onChange={(event) => {
               setName(event.target.value);
@@ -188,10 +191,35 @@ export function AddTastingSheet({ identity, onClose, onCreated }: Props) {
           <FieldError message={errors.name} />
         </div>
 
-        {/* 3. Cijfer */}
+        {/* 3. Het oordeel in één woord */}
+        <div className="mt-12">
+          <label htmlFor="tasting-word" className={labelClass}>
+            3 — In één woord
+          </label>
+          <input
+            id="tasting-word"
+            value={word}
+            enterKeyHint="next"
+            autoCapitalize="none"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="fris"
+            className={fieldClass}
+            onChange={(event) => {
+              setWord(event.target.value);
+              if (errors.word) setErrors((prev) => ({ ...prev, word: null }));
+            }}
+            onBlur={() => {
+              if (word.trim()) setErrors((prev) => ({ ...prev, word: validateWord(word) }));
+            }}
+          />
+          <FieldError message={errors.word} />
+        </div>
+
+        {/* 4. Cijfer */}
         <div className="mt-12">
           <label htmlFor="tasting-score" className={labelClass}>
-            3 — Cijfer, één decimaal
+            4 — Cijfer, één decimaal
           </label>
           <input
             id="tasting-score"

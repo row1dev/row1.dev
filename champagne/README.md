@@ -13,7 +13,7 @@ sleutel in de URL.
 |---|---|
 | `/` | Je eigen tastings, nieuwste boven, plus de knop om er een toe te voegen |
 | `/admin?key=<ADMIN_KEY>` | Alle tastings van iedereen, met per rij een verhaaltje dat opslaat zodra je het veld verlaat |
-| `POST /api/tastings` | Nieuwe tasting (multipart: foto, naam, cijfer, user) |
+| `POST /api/tastings` | Nieuwe tasting (multipart: foto, naam, woord, cijfer, user) |
 | `GET /api/tastings?user_id=` | Tastings van één gebruiker |
 | `PATCH /api/admin/tastings/:id` | `note` bijwerken, met `x-admin-key` header |
 
@@ -23,8 +23,11 @@ server.
 
 ## Regels
 
-- **Naam**: precies één woord. Meer woorden geeft een validatiefout, zowel in de
-  browser als op de server, en de database heeft er een `check` voor.
+- **Naam**: de naam van de champagne, meerdere woorden mogen (`Boizel Brut
+  Réserve`). Mag alleen niet leeg zijn.
+- **In één woord**: een apart veld met het oordeel in precies één woord
+  (`fris`, `brood`). Meer woorden geeft een validatiefout, zowel in de browser
+  als op de server, en de database heeft er een `check` voor.
 - **Cijfer**: één decimaal met een komma (`8,4`). Precies `8,5` is verboden.
 - **Foto**: verplicht, wordt client-side verkleind naar max 1200px op de langste
   zijde en opnieuw gecodeerd als JPEG q0.7 vóór de upload.

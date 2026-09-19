@@ -31,7 +31,7 @@ export function AdminTable({
     <div className="mt-10 divide-y divide-gold-200 border-y border-gold-200">
       <div className="hidden grid-cols-[5rem_1fr_4rem_9rem] gap-4 py-3 text-[11px] uppercase tracking-widest text-ink-400 sm:grid">
         <span>Foto</span>
-        <span>Wie &amp; wat</span>
+        <span>Wie, wat &amp; het woord</span>
         <span className="text-right">Cijfer</span>
         <span className="text-right">Datum</span>
       </div>
@@ -56,6 +56,9 @@ export function AdminTable({
               <h2 className="mt-1 truncate text-2xl leading-tight tracking-wide text-ink-900">
                 {tasting.name}
               </h2>
+              <p className="truncate font-serif text-lg italic tracking-wide text-gold-700">
+                &bdquo;{tasting.word}&rdquo;
+              </p>
               <p className="mt-2 font-serif text-2xl text-gold-600 lining-nums tabular-nums sm:hidden">
                 {formatScore(tasting.score)}
                 <span className="ml-3 font-sans text-[11px] uppercase tracking-widest text-ink-400">
