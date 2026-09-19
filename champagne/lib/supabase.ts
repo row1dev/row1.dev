@@ -1,6 +1,17 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-export const PHOTO_BUCKET = process.env.SUPABASE_PHOTO_BUCKET || "champagne-photos";
+/**
+ * Environment variables die je via een dashboard plakt, krijgen makkelijk een
+ * spatie of een nieuwe regel mee. Bij een JWT maakt dat de sleutel ongeldig en
+ * val je terug op een rol zonder rechten ("permission denied for table ..."),
+ * dus knippen we die witruimte er hier af.
+ */
+function env(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+export const PHOTO_BUCKET = env("SUPABASE_PHOTO_BUCKET") || "champagne-photos";
 
 let cached: SupabaseClient | null = null;
 
@@ -11,8 +22,8 @@ let cached: SupabaseClient | null = null;
 export function supabaseAdmin(): SupabaseClient {
   if (cached) return cached;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = env("NEXT_PUBLIC_SUPABASE_URL");
+  const key = env("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) {
     throw new Error(
       "Supabase is niet geconfigureerd: zet NEXT_PUBLIC_SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY.",
@@ -26,7 +37,7 @@ export function supabaseAdmin(): SupabaseClient {
 }
 
 export function isAdminKey(key: string | null | undefined): boolean {
-  const expected = process.env.ADMIN_KEY;
+  const expected = env("ADMIN_KEY");
   if (!expected) return false;
   if (!key || key.length !== expected.length) return false;
   // constant-time-ish vergelijking

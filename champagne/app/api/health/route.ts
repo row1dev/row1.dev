@@ -5,7 +5,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Leest de `role`-claim uit een Supabase JWT zonder de sleutel zelf prijs te geven. */
-function keyRole(key: string | undefined): string {
+function keyRole(raw: string | undefined): string {
+  const key = raw?.trim();
   if (!key) return "ontbreekt";
   if (key.startsWith("sb_secret_")) return "secret (nieuwe stijl)";
   if (key.startsWith("sb_publishable_")) return "publishable — FOUT, dit is de publieke sleutel";
@@ -37,7 +38,9 @@ export async function GET(request: Request) {
     supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "ontbreekt",
     service_key_rol: role,
     service_key_lengte: serviceKey?.length ?? 0,
+    // De app knipt witruimte zelf weg; dit blijft staan zodat je het kunt opschonen.
     service_key_heeft_witruimte: serviceKey ? serviceKey !== serviceKey.trim() : false,
+    service_key_lengte_zonder_witruimte: serviceKey?.trim().length ?? 0,
     admin_key_gezet: Boolean(process.env.ADMIN_KEY),
     bucket: PHOTO_BUCKET,
   };
