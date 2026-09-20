@@ -6,3 +6,4 @@ dist/
 play.mjs
 diag.mjs
 finish.mjs
+subpath.mjs
