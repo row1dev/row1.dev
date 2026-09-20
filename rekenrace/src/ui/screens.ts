@@ -250,13 +250,22 @@ export function createResultScreen(handlers: ResultHandlers): ResultScreen {
 
       stats.replaceChildren();
       row('Circuit', CIRCUIT_LABELS[circuit]);
-      row('Goed', `${result.stats.correct} van ${result.stats.asked}`);
-      row('Accuraatheid', formatPercent(result.stats.accuracy));
-      row('Gemiddelde reactietijd', formatSeconds(result.stats.averageReaction));
-      row('Tijd in de garage', formatTime(result.stats.garageSeconds));
-      if (result.stats.slowest !== null) {
-        row('Langzaamste som', `${result.stats.slowest.question.text} — ${formatSeconds(result.stats.slowest.seconds)}`);
+      if (result.stats.asked === 0) {
+        // Zonder sommen valt er niets te melden; 100% accuraat op nul sommen
+        // klopt rekenkundig maar zegt precies niets.
+        row('Sommen', 'geen enkele garage bezocht');
+      } else {
+        row('Goed', `${result.stats.correct} van ${result.stats.asked}`);
+        row('Accuraatheid', formatPercent(result.stats.accuracy));
+        row('Gemiddelde reactietijd', formatSeconds(result.stats.averageReaction));
+        if (result.stats.slowest !== null) {
+          row(
+            'Langzaamste som',
+            `${result.stats.slowest.question.text} — ${formatSeconds(result.stats.slowest.seconds)}`,
+          );
+        }
       }
+      row('Tijd in de garage', formatTime(result.stats.garageSeconds));
       if (!isRecord && previous !== null) row('Persoonlijk record', formatTime(previous.seconds));
 
       record.hidden = !isRecord;

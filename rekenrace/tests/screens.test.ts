@@ -130,6 +130,20 @@ describe('resultaatscherm', () => {
     expect(record.hidden).toBe(false);
   });
 
+  it('meldt eerlijk dat er geen sommen gemaakt zijn', () => {
+    const screen = createResultScreen({ onAgain: vi.fn(), onMenu: vi.fn() });
+    screen.render(
+      fakeResult({ stats: { asked: 0, correct: 0, accuracy: 1, averageReaction: 0, slowest: null, garageSeconds: 0 } }),
+      'tables',
+      false,
+      null,
+    );
+    const stats = document.querySelector('#result-stats')?.textContent ?? '';
+    // Honderd procent op nul sommen klopt rekenkundig, maar zegt niets.
+    expect(stats).not.toContain('100%');
+    expect(stats).toContain('geen enkele garage bezocht');
+  });
+
   it('meldt een afgebroken race in plaats van een plaats', () => {
     const screen = createResultScreen({ onAgain: vi.fn(), onMenu: vi.fn() });
     screen.render(fakeResult({ timedOut: true }), 'tables', false, null);
