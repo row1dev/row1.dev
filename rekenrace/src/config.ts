@@ -9,10 +9,20 @@ export const TICK_MS = 1000 / TICK_HZ;
 /** Maximaal aantal simulatiestappen per frame, zodat een lange pauze niet tot een freeze leidt. */
 export const MAX_TICKS_PER_FRAME = 5;
 
+/**
+ * Snelheden staan in baan-eenheden per SECONDE, niet per tick.
+ * Per tick wordt v / TICK_HZ bij de afstand opgeteld; de drag-factor is wél per tick.
+ * Met vBase = 3.0 duurt een race op basistempo 1000 / 3 = 333 s en ligt de
+ * ondergrens op vMax 1000 / 9 = 111 s. Dat sluit aan op de recordtijden in het
+ * ontwerp (01:44 tot 03:12). Als eenheden per tick zou een hele race 5,5 seconde
+ * duren, dus die lezing klopt niet.
+ *
+ * Wil je kortere races, draai dan aan `distance` — dat is de bedoelde knop.
+ */
 export const RACE = {
-  /** Lengte van een circuit in baan-eenheden. */
+  /** Lengte van een circuit in baan-eenheden, getoond als meters. */
   distance: 1000,
-  /** Basistempo van de speler, in eenheden per tick. */
+  /** Basistempo van de speler, in eenheden per seconde. */
   vBase: 3.0,
   /** Harde bovengrens op de snelheid van de speler. */
   vMax: 9.0,
@@ -24,9 +34,24 @@ export const RACE = {
   penaltyFactor: 0.4,
   /** Duur van de strafperiode na een fout antwoord, in ticks. */
   penaltyTicks: 60,
-  /** Maximale duur van een race in ticks (2 minuten), als vangnet tegen een oneindige lus. */
-  maxTicks: 60 * 120,
+  /**
+   * Harde bovengrens op de duur van een race, als vangnet tegen een oneindige lus.
+   * Ruim gekozen: wie alles fout beantwoordt zit lang op vBase * penaltyFactor.
+   */
+  maxTicks: 60 * 900,
 } as const;
+
+/**
+ * Afstand per circuit. De Grand Prix rijdt de standaardafstand van 1000; de andere
+ * circuits zijn korter, zodat een sterke ronde uitkomt rond de recordtijden uit het
+ * ontwerp (Tafelbaan 01:44, Optelcircuit 02:07, Grand Prix 03:12).
+ */
+export const CIRCUIT_DISTANCE: Readonly<Record<string, number>> = {
+  tables: 600,
+  addition: 750,
+  division: 700,
+  grandprix: RACE.distance,
+};
 
 export const STREAK = {
   /** Aantal goede antwoorden op rij dat turbo geeft. */
@@ -58,7 +83,7 @@ export const DIFFICULTY = {
 } as const;
 
 export const OPPONENTS = {
-  /** Basistempo van een tegenstander in eenheden per tick, per moeilijkheidsindex. */
+  /** Basistempo van een tegenstander in eenheden per seconde, per moeilijkheidsindex. */
   pace: [2.6, 3.1, 3.6] as const,
   /** Amplitude van de sinusvariatie op het tempo, zodat een tegenstander niet robotachtig rijdt. */
   paceWobble: 0.25,
