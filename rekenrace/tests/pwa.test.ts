@@ -9,9 +9,10 @@ const html = read('index.html');
 const manifest: Record<string, unknown> = JSON.parse(read('public/manifest.webmanifest'));
 
 describe('manifest', () => {
-  it('start liggend en schermvullend vanaf het homescreen', () => {
+  it('start rechtop en schermvullend vanaf het homescreen', () => {
     expect(manifest['name']).toBe('Blue Dog Rekenrace');
-    expect(manifest['orientation']).toBe('landscape');
+    // Het spel kijkt van bovenaf de baan op; daar hoort een staand scherm bij.
+    expect(manifest['orientation']).toBe('portrait');
     expect(manifest['display']).toBe('fullscreen');
     expect(manifest['lang']).toBe('nl');
   });
@@ -53,7 +54,7 @@ describe('index.html', () => {
 
   it('is in het Nederlands', () => {
     expect(html).toContain('lang="nl"');
-    expect(html).toContain('Draai je telefoon');
+    expect(html).toContain('Houd je telefoon rechtop');
   });
 });
 

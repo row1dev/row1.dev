@@ -6,11 +6,19 @@
 import './style.css';
 import { MAX_TICKS_PER_FRAME, TICK_MS } from './config.ts';
 import { answerDigits, type Circuit } from './engine/questions.ts';
-import { createRace, type Race } from './engine/race.ts';
+import { createRace, NO_RACE_INPUT, type Race } from './engine/race.ts';
 import { createRenderer, type Renderer } from './render/canvas.ts';
-import { createHud, createQuestionPanel } from './ui/hud.ts';
+import { createGauges, createHud, createQuestionPanel } from './ui/hud.ts';
+import { createControls } from './ui/controls.ts';
 import { createNumpad, type Numpad } from './ui/numpad.ts';
-import { createMenu, createPortraitHint, createResultScreen, createScreens } from './ui/screens.ts';
+import {
+  createGaragePanel,
+  createMenu,
+  createPortraitHint,
+  createResultScreen,
+  createScreens,
+  createStartLights,
+} from './ui/screens.ts';
 import { createRecordStore, type Settings } from './storage/records.ts';
 import { createSfx } from './audio/sfx.ts';
 
@@ -27,29 +35,36 @@ function boot(): void {
   sfx.setMuted(settings.muted);
 
   const screens = createScreens();
-  const hud = createHud(need<HTMLElement>('#hud'));
-  const panel = createQuestionPanel(need<HTMLElement>('#question'));
+  const hud = createHud();
+  const gauges = createGauges();
+  const panel = createQuestionPanel();
+  const lights = createStartLights();
   const portraitHint = createPortraitHint();
   const canvas = need<HTMLCanvasElement>('#track-canvas');
   const renderer: Renderer = createRenderer(canvas);
+  const toast = need<HTMLElement>('#toast');
 
   let race: Race | null = null;
   let circuit: Circuit = 'tables';
-  /** Teller die bij elke race oploopt, zodat je niet twee keer dezelfde sommen krijgt. */
   let raceCount = 0;
   let paused = false;
   let resultShown = false;
+  let toastTimer: number | undefined;
+
+  const controls = createControls({ onAction: () => sfx.key() });
 
   const numpad: Numpad = createNumpad(need<HTMLElement>('#numpad'), {
     autoSubmit: settings.autoSubmit,
-    onChange: () => refreshQuestion(),
+    onChange: () => refreshGarage(),
     onKey: () => sfx.key(),
     onSubmit: (value) => submitAnswer(value),
   });
 
+  const garagePanel = createGaragePanel(() => leaveGarage());
+
   const menu = createMenu({
     onStart: (chosen) => startRace(chosen),
-    onOpponentCount: (count) => {
+    onRivalCount: (count) => {
       settings = { ...settings, opponentCount: count };
       store.saveSettings(settings);
       renderMenu();
@@ -64,7 +79,6 @@ function boot(): void {
 
   function renderMenu(): void {
     menu.render(store.records(), settings.opponentCount, settings.muted);
-    hud.setMuted(settings.muted);
   }
 
   function toggleMute(): void {
@@ -80,6 +94,15 @@ function boot(): void {
     renderMenu();
   }
 
+  function say(message: string): void {
+    toast.textContent = message;
+    toast.hidden = false;
+    if (toastTimer !== undefined) window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => {
+      toast.hidden = true;
+    }, 1800);
+  }
+
   function startRace(chosen: Circuit): void {
     circuit = chosen;
     raceCount += 1;
@@ -87,20 +110,30 @@ function boot(): void {
     race = createRace({
       seed: `${chosen}:${Date.now()}:${raceCount}`,
       circuit: chosen,
-      opponentCount: settings.opponentCount,
+      rivalCount: settings.opponentCount,
     });
     numpad.clear();
-    numpad.setEnabled(true);
+    controls.setEnabled(true);
     screens.show('race');
     renderer.resize();
-    refreshQuestion();
+    toast.hidden = true;
   }
 
-  function refreshQuestion(): void {
+  function leaveGarage(): void {
+    if (race === null) return;
+    race.leaveGarage();
+    numpad.clear();
+    screens.show('race');
+    controls.setEnabled(true);
+  }
+
+  function refreshGarage(): void {
     if (race === null) return;
     const view = race.view();
-    panel.update(view, numpad.entry);
-    numpad.setExpectedDigits(answerDigits(view.question.answer));
+    if (view.garage === null) return;
+    panel.update(view.garage, numpad.entry);
+    garagePanel.update(view.garage, view.player.kart);
+    numpad.setExpectedDigits(answerDigits(view.garage.question.answer));
   }
 
   function submitAnswer(value: number): void {
@@ -109,14 +142,13 @@ function boot(): void {
     if (outcome === null) return;
     if (outcome.correct) {
       panel.flashCorrect();
-      // De turbo klinkt over het goed-geluid heen, niet in plaats daarvan.
       sfx.correct();
-      if (outcome.turbo) sfx.turbo();
+      if (outcome.earned !== null) say(`${outcome.earned.label} +${outcome.earned.amount}`);
     } else {
       panel.flashWrong();
       sfx.wrong();
     }
-    refreshQuestion();
+    refreshGarage();
   }
 
   function finishRace(): void {
@@ -126,7 +158,6 @@ function boot(): void {
     resultShown = true;
 
     const previous = store.best(circuit);
-    // Een afgebroken race telt niet mee voor de records.
     const isRecord =
       !result.timedOut &&
       store.submit(circuit, {
@@ -144,6 +175,8 @@ function boot(): void {
 
   let lastFrame = performance.now();
   let accumulator = 0;
+  let wasGarage = false;
+  let lastRockets = 0;
 
   function frame(now: number): void {
     requestAnimationFrame(frame);
@@ -151,41 +184,57 @@ function boot(): void {
     const delta = Math.min(250, now - lastFrame);
     lastFrame = now;
 
-    if (race === null || screens.current() !== 'race') return;
-    const view = race.view();
+    const screen = screens.current();
+    if (race === null || (screen !== 'race' && screen !== 'garage')) return;
 
     if (paused) {
-      // Tijdens een pauze loopt de tijd niet door: de accumulator blijft leeg.
       accumulator = 0;
-      renderer.draw(view, now);
+      renderer.draw(race.view(), now);
       return;
     }
 
     accumulator += delta;
     let steps = 0;
     while (accumulator >= TICK_MS && steps < MAX_TICKS_PER_FRAME) {
-      race.tick();
+      // In de garage stuurt niemand; daarbuiten leest hij de knoppen.
+      race.tick(screens.current() === 'garage' ? NO_RACE_INPUT : controls.read());
       accumulator -= TICK_MS;
       steps += 1;
     }
-    // Na een lange onderbreking niet alsnog alles inhalen.
     if (steps === MAX_TICKS_PER_FRAME) accumulator = 0;
 
-    const fresh = race.view();
-    hud.update(fresh);
-    numpad.setEnabled(fresh.phase === 'running');
-    refreshQuestion();
-    renderer.draw(fresh, now);
+    const view = race.view();
 
-    if (fresh.phase === 'finished') finishRace();
+    // De garage opent en sluit vanuit de engine, dus het scherm volgt de fase.
+    const inGarage = view.phase === 'garage';
+    if (inGarage !== wasGarage) {
+      wasGarage = inGarage;
+      if (inGarage) {
+        numpad.clear();
+        controls.setEnabled(false);
+        screens.show('garage');
+        sfx.key();
+      }
+    }
+
+    hud.update(view);
+    gauges.update(view);
+    controls.setAmmo(view.player.kart.rockets, view.player.kart.boosts);
+    lights.update(view.lightsLit, view.phase === 'countdown');
+
+    if (inGarage) refreshGarage();
+    else renderer.draw(view, now);
+
+    // Een treffer meldt zich, zodat je weet waarom je opeens loopt.
+    if (view.player.kart.rockets !== lastRockets) lastRockets = view.player.kart.rockets;
+    if (view.phase === 'finished') finishRace();
   }
 
   // ---- Omgeving ----
 
   const syncPause = (): void => {
-    // Staand of op de achtergrond: de simulatie staat stil.
-    const portrait = portraitHint.update();
-    paused = portrait || document.visibilityState === 'hidden';
+    const landscape = portraitHint.update();
+    paused = landscape || document.visibilityState === 'hidden';
   };
 
   window.addEventListener('resize', () => {
@@ -196,24 +245,12 @@ function boot(): void {
     renderer.resize();
     syncPause();
   });
-  // Het canvas verandert ook van maat als de HUD herschikt zonder dat het venster
-  // van formaat wijzigt, bijvoorbeeld als de adresbalk van de browser wegschuift.
-  if ('ResizeObserver' in window) {
-    new ResizeObserver(() => renderer.resize()).observe(canvas);
-  }
+  if ('ResizeObserver' in window) new ResizeObserver(() => renderer.resize()).observe(canvas);
 
   document.addEventListener('visibilitychange', syncPause);
-  // Ook pauzeren als de app naar de achtergrond gaat zonder visibilitychange.
   window.addEventListener('pagehide', syncPause);
   window.addEventListener('blur', syncPause);
   window.addEventListener('focus', syncPause);
-
-  need<HTMLButtonElement>('#hud-mute').addEventListener('click', () => toggleMute());
-
-  // De AudioContext mag pas bij het eerste gebaar starten; daarna blijft hij staan.
-  const unlockAudio = (): void => sfx.unlock();
-  document.addEventListener('pointerdown', unlockAudio, { capture: true });
-  document.addEventListener('keydown', unlockAudio, { capture: true });
 
   // Geen dubbeltik-zoom, geen pinch-zoom en geen contextmenu tijdens het spelen.
   document.addEventListener('gesturestart', (event) => event.preventDefault());
@@ -228,9 +265,21 @@ function boot(): void {
 
   // Een fysiek toetsenbord is handig op de desktop en kost bijna niets.
   window.addEventListener('keydown', (event) => {
-    if (screens.current() !== 'race' || paused) return;
-    if (numpad.handleKey(event.key)) event.preventDefault();
+    if (paused) return;
+    if (screens.current() === 'garage') {
+      if (numpad.handleKey(event.key)) event.preventDefault();
+      return;
+    }
+    if (screens.current() === 'race' && controls.handleKey(event.key, true)) event.preventDefault();
   });
+  window.addEventListener('keyup', (event) => {
+    if (screens.current() === 'race' && controls.handleKey(event.key, false)) event.preventDefault();
+  });
+
+  // De AudioContext mag pas bij het eerste gebaar starten; daarna blijft hij staan.
+  const unlockAudio = (): void => sfx.unlock();
+  document.addEventListener('pointerdown', unlockAudio, { capture: true });
+  document.addEventListener('keydown', unlockAudio, { capture: true });
 
   renderer.resize();
   syncPause();
@@ -245,7 +294,6 @@ function boot(): void {
 function registerServiceWorker(): void {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
   window.addEventListener('load', () => {
-    // Relatief ten opzichte van de pagina, zodat het ook onder /rekenrace/ werkt.
     void navigator.serviceWorker.register(new URL('sw.js', window.location.href), { scope: './' }).catch(() => {
       // Geen worker betekent alleen: niet offline speelbaar. Het spel werkt verder.
     });

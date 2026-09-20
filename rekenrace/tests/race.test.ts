@@ -1,306 +1,295 @@
 import { describe, expect, it } from 'vitest';
-import { CIRCUIT_DISTANCE, RACE, STREAK, TICK_HZ, UI } from '../src/config.ts';
+import { KART, RACE, TICK_HZ } from '../src/config.ts';
+import { NO_RACE_INPUT, createRace, type Race, type RaceInput } from '../src/engine/race.ts';
 import { CIRCUITS } from '../src/engine/questions.ts';
-import { createRace, speedFactorFor, type RaceResult, type RaceView } from '../src/engine/race.ts';
+import { driveRival, rivalProfiles } from '../src/engine/opponent.ts';
 
-type Behaviour = 'always-right' | 'always-wrong' | 'never-answers';
+const START = TICK_HZ * 3;
 
-interface RunOptions {
-  readonly behaviour: Behaviour;
-  /** Seconden die de bot over elke som doet. */
-  readonly thinkSeconds?: number;
-  readonly opponentCount?: number;
-  readonly seed?: string;
-  readonly circuit?: (typeof CIRCUITS)[number];
+function run(race: Race, ticks: number, input: RaceInput = NO_RACE_INPUT): void {
+  for (let i = 0; i < ticks; i += 1) race.tick(input);
 }
 
-interface RunOutcome {
-  readonly result: RaceResult;
-  readonly ticks: number;
-  readonly maxSpeed: number;
-  readonly views: readonly RaceView[];
-}
+/**
+ * Rijdt naar de garage toe met dezelfde stuurlogica als de tegenstanders. Die
+ * mikt op de middellijn, en daar staan de garages. Sturen is nodig: hun
+ * voetafdruk is smal, dus wie rechtdoor blijft rijden rijdt er gewoon langs.
+ */
+const AUTOPILOT = rivalProfiles(1)[0]!;
 
-/** Draait een hele race headless met een bot die zich volgens `behaviour` gedraagt. */
-function run(options: RunOptions): RunOutcome {
-  const race = createRace({
-    seed: options.seed ?? 'test-seed',
-    circuit: options.circuit ?? 'tables',
-    opponentCount: options.opponentCount ?? 1,
-  });
-  const thinkSeconds = options.thinkSeconds ?? 1;
-  const views: RaceView[] = [];
-  let ticks = 0;
-  let maxSpeed = 0;
-
-  // Ruime bovengrens: de test wil juist bewijzen dat de race hier ruim onder blijft.
-  const hardLimit = RACE.maxTicks + 10;
-  for (;;) {
+function driveToGarage(race: Race, maxTicks = TICK_HZ * 200): boolean {
+  for (let i = 0; i < maxTicks; i += 1) {
     const view = race.view();
-    views.push(view);
-    maxSpeed = Math.max(maxSpeed, view.speed);
-    if (view.phase === 'finished' || ticks >= hardLimit) break;
-
-    if (options.behaviour !== 'never-answers' && view.phase === 'running' && view.questionSeconds >= thinkSeconds) {
-      const given = options.behaviour === 'always-right' ? view.question.answer : view.question.answer + 1;
-      race.answer(given);
-    }
-    race.tick();
-    ticks += 1;
+    if (view.phase === 'garage') return true;
+    if (view.phase === 'finished') return false;
+    race.tick({ ...driveRival(view.player.kart, view.track, AUTOPILOT), fire: false });
   }
-
-  const result = race.view().result;
-  if (result === null) throw new Error('de race eindigde niet');
-  return { result, ticks, maxSpeed, views };
+  return false;
 }
 
-describe('speedFactorFor', () => {
-  it('beloont snel antwoorden en klemt tussen 0,4 en 1,6', () => {
-    expect(speedFactorFor(0)).toBeCloseTo(1.6);
-    expect(speedFactorFor(3)).toBeCloseTo(1.0);
-    expect(speedFactorFor(100)).toBeCloseTo(0.4);
-    expect(speedFactorFor(1)).toBeGreaterThan(speedFactorFor(4));
-  });
-});
+function newRace(seed = 'race', rivalCount = 2): Race {
+  return createRace({ seed, circuit: 'tables', rivalCount });
+}
 
 describe('race, opzet', () => {
-  it('start op vBase met een som in beeld en nog geen uitslag', () => {
-    const view = createRace({ seed: 's', circuit: 'tables', opponentCount: 2 }).view();
-    expect(view.tick).toBe(0);
-    expect(view.phase).toBe('running');
-    expect(view.speed).toBeCloseTo(RACE.vBase);
+  it('begint met een startsein en een stilstaand veld', () => {
+    const view = newRace().view();
+    expect(view.phase).toBe('countdown');
     expect(view.racers).toHaveLength(3);
+    expect(view.player.kart.speed).toBe(0);
     expect(view.result).toBeNull();
+    expect(view.garage).toBeNull();
   });
 
-  it('klemt het aantal tegenstanders op 1 tot en met 3', () => {
-    expect(createRace({ seed: 's', circuit: 'tables', opponentCount: 0 }).view().racers).toHaveLength(2);
-    expect(createRace({ seed: 's', circuit: 'tables', opponentCount: 9 }).view().racers).toHaveLength(4);
+  it('laat de lampen één voor één aangaan en geeft dan groen', () => {
+    const race = newRace();
+    expect(race.view().lightsLit).toBeLessThanOrEqual(1);
+
+    run(race, START - 2);
+    expect(race.view().phase).toBe('countdown');
+    expect(race.view().lightsLit).toBe(4);
+
+    run(race, 4);
+    expect(race.view().phase).toBe('racing');
+  });
+
+  it('houdt iedereen stil tot het groen is', () => {
+    const race = newRace();
+    run(race, START - 2);
+    for (const racer of race.view().racers) expect(racer.kart.y).toBe(0);
+
+    run(race, TICK_HZ * 2);
+    expect(race.view().player.kart.y).toBeGreaterThan(0);
+  });
+
+  it('zet het veld naast elkaar op de startgrid', () => {
+    const xs = newRace('grid', 3).view().racers.map((racer) => Math.round(racer.kart.x));
+    expect(new Set(xs).size).toBe(4);
   });
 
   it('is deterministisch bij dezelfde seed', () => {
-    const a = run({ behaviour: 'always-right', seed: 'gelijk' });
-    const b = run({ behaviour: 'always-right', seed: 'gelijk' });
-    expect(a.ticks).toBe(b.ticks);
-    expect(a.result.position).toBe(b.result.position);
-    expect(a.result.stats).toEqual(b.result.stats);
+    const drive = (): number => {
+      const race = newRace('zelfde');
+      run(race, TICK_HZ * 30, { steer: 1, brake: false, turbo: false, fire: false });
+      return race.view().player.kart.y;
+    };
+    expect(drive()).toBe(drive());
   });
 });
 
-describe('race, snelheidsmodel', () => {
-  it('overschrijdt nooit vMax, ook niet met turbo en snelle antwoorden', () => {
-    for (const circuit of CIRCUITS) {
-      const { views, maxSpeed } = run({ behaviour: 'always-right', thinkSeconds: 0, circuit, opponentCount: 3 });
-      expect(maxSpeed).toBeLessThanOrEqual(RACE.vMax + 1e-9);
-      for (const v of views) expect(v.speed).toBeGreaterThanOrEqual(0);
+describe('race, rijden', () => {
+  it('reageert op sturen', () => {
+    const straight = newRace('stuur');
+    run(straight, START + TICK_HZ * 4);
+
+    const turning = newRace('stuur');
+    run(turning, START);
+    run(turning, TICK_HZ * 4, { steer: 1, brake: false, turbo: false, fire: false });
+
+    expect(turning.view().player.kart.x).not.toBeCloseTo(straight.view().player.kart.x, 1);
+  });
+
+  it('remt op commando', () => {
+    const race = newRace('rem');
+    run(race, START + TICK_HZ * 3);
+    const rolling = race.view().player.kart.speed;
+    run(race, TICK_HZ, { steer: 0, brake: true, turbo: false, fire: false });
+    expect(race.view().player.kart.speed).toBeLessThan(rolling);
+  });
+
+  it('laat de tegenstanders zelf rijden', () => {
+    const race = newRace('rivalen', 3);
+    run(race, START + TICK_HZ * 10);
+    for (const racer of race.view().racers) {
+      if (racer.isPlayer) continue;
+      expect(racer.kart.y).toBeGreaterThan(100);
+      // Ze stoppen nooit om te tanken, dus hun tank blijft vol.
+      expect(racer.kart.fuel).toBe(KART.maxFuel);
     }
   });
 
-  it('zakt bij een fout antwoord terug naar vBase * 0.4 voor zestig ticks', () => {
-    const race = createRace({ seed: 'straf', circuit: 'tables', opponentCount: 1 });
-    for (let i = 0; i < 30; i += 1) race.tick();
-    race.answer(race.view().question.answer + 1);
-    race.tick();
-
-    expect(race.view().speed).toBeCloseTo(RACE.vBase * RACE.penaltyFactor);
-    // Nog binnen de strafperiode.
-    for (let i = 1; i < RACE.penaltyTicks; i += 1) race.tick();
-    expect(race.view().speed).toBeCloseTo(RACE.vBase * RACE.penaltyFactor);
-    // Daarna kruipt hij terug naar vBase.
-    race.tick();
-    expect(race.view().speed).toBeGreaterThan(RACE.vBase * RACE.penaltyFactor);
-  });
-
-  it('geeft een boost bij een goed antwoord die daarna terugzakt naar vBase', () => {
-    const race = createRace({ seed: 'boost', circuit: 'tables', opponentCount: 1 });
-    race.answer(race.view().question.answer);
-    const boosted = race.view().speed;
-    expect(boosted).toBeGreaterThan(RACE.vBase);
-
-    for (let i = 0; i < 600; i += 1) race.tick();
-    expect(race.view().speed).toBeCloseTo(RACE.vBase, 1);
-  });
-
-  it('zet turbo aan bij vijf goede antwoorden op rij', () => {
-    const race = createRace({ seed: 'turbo', circuit: 'tables', opponentCount: 1 });
-    for (let i = 0; i < STREAK.threshold - 1; i += 1) {
-      expect(race.answer(race.view().question.answer)?.turbo).toBe(false);
-      race.tick();
+  it('rangschikt het veld op afgelegde afstand', () => {
+    const race = newRace('positie', 3);
+    run(race, START + TICK_HZ * 20);
+    const view = race.view();
+    expect(view.racers.map((racer) => racer.position)).toEqual([1, 2, 3, 4]);
+    for (let i = 1; i < view.racers.length; i += 1) {
+      expect(view.racers[i]!.kart.y).toBeLessThanOrEqual(view.racers[i - 1]!.kart.y);
     }
-    const outcome = race.answer(race.view().question.answer);
-    expect(outcome?.turbo).toBe(true);
-    expect(outcome?.streak).toBe(STREAK.threshold);
-    expect(race.view().turboTicksLeft).toBe(STREAK.ticks);
-
-    race.tick();
-    expect(race.view().speed).toBeCloseTo(RACE.vMax);
-  });
-
-  it('reset de streak en de turbo bij een fout antwoord', () => {
-    const race = createRace({ seed: 'reset', circuit: 'tables', opponentCount: 1 });
-    for (let i = 0; i < STREAK.threshold; i += 1) {
-      race.answer(race.view().question.answer);
-      race.tick();
-    }
-    expect(race.view().turboTicksLeft).toBeGreaterThan(0);
-
-    race.answer(race.view().question.answer + 1);
-    expect(race.view().streak).toBe(0);
-    expect(race.view().turboTicksLeft).toBe(0);
   });
 });
 
-describe('race, sommen en feedback', () => {
-  it('toont na een fout antwoord het juiste antwoord voor ongeveer 800 ms', () => {
-    const race = createRace({ seed: 'reveal', circuit: 'tables', opponentCount: 1 });
-    const wrongQuestion = race.view().question;
-    race.answer(wrongQuestion.answer + 1);
+describe('race, raketten', () => {
+  it('schiet alleen met munitie', () => {
+    const race = newRace('schiet');
+    run(race, START + TICK_HZ);
+    const fire: RaceInput = { steer: 0, brake: false, turbo: false, fire: true };
 
-    expect(race.view().phase).toBe('reveal');
-    expect(race.view().question).toEqual(wrongQuestion);
-    // Tijdens de reveal neemt de engine geen antwoorden aan.
-    expect(race.answer(wrongQuestion.answer)).toBeNull();
-
-    const revealTicks = Math.round((UI.revealMs / 1000) * TICK_HZ);
-    for (let i = 0; i < revealTicks; i += 1) race.tick();
-    expect(race.view().phase).toBe('running');
-    expect(race.view().question).not.toEqual(wrongQuestion);
+    race.tick(fire);
+    expect(race.view().rockets.filter((rocket) => rocket.ownerId === 'player')).toHaveLength(0);
   });
 
-  it('geeft bij een goed antwoord direct de volgende som', () => {
-    const race = createRace({ seed: 'volgende', circuit: 'tables', opponentCount: 1 });
-    const first = race.view().question;
-    race.answer(first.answer);
-    expect(race.view().phase).toBe('running');
-    expect(race.view().question).not.toEqual(first);
-    expect(race.view().questionSeconds).toBe(0);
+  it('laat tegenstanders op je schieten, en dat kost conditie', () => {
+    // Twee tegenstanders die achter je beginnen en vroeg of laat raak schieten.
+    const race = newRace('beschoten', 3);
+    let lowest: number = KART.maxCondition;
+    for (let i = 0; i < TICK_HZ * 200; i += 1) {
+      const view = race.view();
+      lowest = Math.min(lowest, view.player.kart.condition);
+      if (view.phase === 'garage') race.leaveGarage();
+      if (view.phase === 'finished') break;
+      race.tick({ ...driveRival(view.player.kart, view.track, AUTOPILOT), fire: false });
+    }
+    expect(lowest).toBeLessThan(KART.maxCondition);
+  });
+});
+
+describe('race, de Rekengarage', () => {
+  it('opent vanzelf als je een garage binnenrijdt', () => {
+    const race = newRace('garage');
+    expect(driveToGarage(race)).toBe(true);
+
+    const view = race.view();
+    expect(view.phase).toBe('garage');
+    expect(view.garage).not.toBeNull();
+    expect(view.garage!.question.answer).toBeGreaterThanOrEqual(0);
+    // De kart staat stil zolang je binnen bent.
+    expect(view.player.kart.speed).toBe(0);
   });
 
-  it('leidt de reactietijd af uit de ticks sinds de som verscheen', () => {
-    const race = createRace({ seed: 'reactie', circuit: 'tables', opponentCount: 1 });
-    for (let i = 0; i < 90; i += 1) race.tick();
-    const outcome = race.answer(race.view().question.answer);
-    expect(outcome?.reactionSeconds).toBeCloseTo(1.5);
-    expect(outcome?.speedFactor).toBeCloseTo(speedFactorFor(1.5));
+  it('laat de race buiten gewoon doorlopen', () => {
+    const race = newRace('doorlopen', 3);
+    expect(driveToGarage(race)).toBe(true);
+
+    const before = race.view();
+    const rivalsBefore = before.racers.filter((racer) => !racer.isPlayer).map((racer) => racer.kart.y);
+    const playerBefore = before.player.kart.y;
+
+    run(race, TICK_HZ * 5);
+
+    const after = race.view();
+    const rivalsAfter = after.racers.filter((racer) => !racer.isPlayer).map((racer) => racer.kart.y);
+    // Dit is de hele afweging: elke som kost je baanpositie.
+    expect(Math.max(...rivalsAfter)).toBeGreaterThan(Math.max(...rivalsBefore));
+    expect(after.player.kart.y).toBeCloseTo(playerBefore, 5);
   });
 
-  it('houdt statistieken bij voor het resultaatscherm', () => {
-    const { result } = run({ behaviour: 'always-right', thinkSeconds: 1 });
-    expect(result.stats.asked).toBeGreaterThan(0);
-    expect(result.stats.correct).toBe(result.stats.asked);
-    expect(result.stats.accuracy).toBe(1);
-    expect(result.stats.slowest).not.toBeNull();
-    expect(result.stats.averageReaction).toBeGreaterThan(0);
+  it('schrijft een goede som bij op je voorraad', () => {
+    const race = newRace('voorraad');
+    expect(driveToGarage(race)).toBe(true);
+
+    const before = race.view();
+    const reward = before.garage!.reward;
+    const outcome = race.answer(before.garage!.question.answer);
+
+    expect(outcome?.correct).toBe(true);
+    expect(outcome?.earned).toEqual(reward);
+
+    const after = race.view().player.kart;
+    if (reward.kind === 'fuel') expect(after.fuel).toBeGreaterThan(before.player.kart.fuel);
+    if (reward.kind === 'rocket') expect(after.rockets).toBe(before.player.kart.rockets + reward.amount);
+    if (reward.kind === 'boost') expect(after.boosts).toBe(before.player.kart.boosts + reward.amount);
   });
 
-  it('onthoudt de langzaamste som', () => {
-    const race = createRace({ seed: 'traag', circuit: 'tables', opponentCount: 1 });
-    race.answer(race.view().question.answer);
-    const slowOne = race.view().question;
-    for (let i = 0; i < 300; i += 1) race.tick();
-    race.answer(slowOne.answer);
-    race.answer(race.view().question.answer);
+  it('levert bij een fout antwoord niets op', () => {
+    const race = newRace('fout');
+    expect(driveToGarage(race)).toBe(true);
 
-    expect(race.view().stats.slowest?.question).toEqual(slowOne);
-    expect(race.view().stats.slowest?.seconds).toBeCloseTo(5);
+    const before = race.view().player.kart;
+    const outcome = race.answer(race.view().garage!.question.answer + 1);
+
+    expect(outcome?.correct).toBe(false);
+    expect(outcome?.earned).toBeNull();
+    const after = race.view().player.kart;
+    expect(after.fuel).toBeCloseTo(before.fuel, 6);
+    expect(after.rockets).toBe(before.rockets);
+  });
+
+  it('telt de sommen mee in de statistieken', () => {
+    const race = newRace('statistiek');
+    expect(driveToGarage(race)).toBe(true);
+
+    race.answer(race.view().garage!.question.answer);
+    run(race, 1);
+    race.answer(race.view().garage!.question.answer + 1);
+
+    const stats = race.view().stats;
+    expect(stats.asked).toBe(2);
+    expect(stats.correct).toBe(1);
+    expect(stats.accuracy).toBeCloseTo(0.5);
+    expect(stats.garageSeconds).toBeGreaterThan(0);
+  });
+
+  it('neemt buiten de garage geen antwoorden aan', () => {
+    const race = newRace('buiten');
+    run(race, START + TICK_HZ);
+    expect(race.answer(4)).toBeNull();
+  });
+
+  it('rijdt op commando weer naar buiten en rolt er niet meteen weer in', () => {
+    const race = newRace('wegwezen');
+    expect(driveToGarage(race)).toBe(true);
+    const garageId = race.view().garage!.garage.id;
+
+    race.leaveGarage();
+    expect(race.view().phase).toBe('racing');
+    expect(race.view().garage).toBeNull();
+
+    // Rijd de garage uit; hij mag niet opnieuw openen zolang je er nog in staat.
+    for (let i = 0; i < TICK_HZ * 3; i += 1) {
+      race.tick(NO_RACE_INPUT);
+      if (race.view().phase === 'garage') {
+        expect(race.view().garage!.garage.id).not.toBe(garageId);
+        break;
+      }
+    }
   });
 });
 
 describe('race, uitslag', () => {
-  it('wint met een reeks snelle goede antwoorden van het AI-basistempo', () => {
-    for (const opponentCount of [1, 2, 3]) {
-      const { result } = run({ behaviour: 'always-right', thinkSeconds: 0.5, opponentCount });
-      expect(result.position).toBe(1);
-      expect(result.timedOut).toBe(false);
+  it('eindigt als de speler over de finish komt', () => {
+    // Een korte baan, zodat de test niet een halve minuut simuleert.
+    const race = createRace({ seed: 'finish', circuit: 'tables', rivalCount: 1, trackLength: 900 });
+    for (let i = 0; i < RACE.maxTicks; i += 1) {
+      const view = race.view();
+      if (view.phase === 'garage') race.leaveGarage();
+      if (view.phase === 'finished') break;
+      race.tick({ ...driveRival(view.player.kart, view.track, AUTOPILOT), fire: false });
     }
-  });
 
-  it('verliest met een reeks foute antwoorden', () => {
-    const { result } = run({ behaviour: 'always-wrong', thinkSeconds: 1, opponentCount: 1 });
-    expect(result.position).toBeGreaterThan(1);
-    expect(result.stats.correct).toBe(0);
-  });
-
-  it('verliest ook van de snelste tegenstander als er niets beantwoord wordt', () => {
-    const { result } = run({ behaviour: 'never-answers', opponentCount: 3 });
-    expect(result.position).toBeGreaterThan(1);
-  });
-
-  it('eindigt altijd binnen de tickslimiet, hoe er ook gespeeld wordt', () => {
-    for (const behaviour of ['always-right', 'always-wrong', 'never-answers'] as const) {
-      const { result, ticks } = run({ behaviour, thinkSeconds: 1, opponentCount: 3 });
-      expect(ticks).toBeLessThan(RACE.maxTicks);
-      expect(result.seconds).toBeGreaterThan(0);
-      expect(result.timedOut).toBe(false);
-    }
-  });
-
-  it('rangschikt het hele veld met de speler op zijn plaats', () => {
-    const { result } = run({ behaviour: 'always-right', thinkSeconds: 0.5, opponentCount: 3 });
-    expect(result.racers).toHaveLength(4);
-    expect(result.racers.map((r) => r.position)).toEqual([1, 2, 3, 4]);
-    const player = result.racers.find((r) => r.isPlayer);
-    expect(player?.position).toBe(result.position);
-    expect(player?.distance).toBe(CIRCUIT_DISTANCE['tables']);
+    const result = race.view().result;
+    expect(result).not.toBeNull();
+    expect(result!.timedOut).toBe(false);
+    expect(result!.position).toBeGreaterThanOrEqual(1);
+    expect(result!.racers).toHaveLength(2);
+    expect(result!.seconds).toBeGreaterThan(0);
   });
 
   it('bevriest de simulatie zodra de race klaar is', () => {
-    const race = createRace({ seed: 'klaar', circuit: 'tables', opponentCount: 1, distance: 5 });
-    while (race.view().phase !== 'finished') race.tick();
-    const frozen = race.view();
-    race.tick();
-    race.tick();
-    expect(race.view().tick).toBe(frozen.tick);
-    expect(race.answer(frozen.question.answer)).toBeNull();
-  });
-});
-
-describe('race, circuitafstanden', () => {
-  it('geeft elk circuit zijn eigen afstand, met 1000 als standaard', () => {
-    for (const circuit of CIRCUITS) {
-      const view = createRace({ seed: 'afstand', circuit, opponentCount: 1 }).view();
-      expect(view.distance).toBe(CIRCUIT_DISTANCE[circuit]);
-      expect(view.distance).toBeGreaterThan(0);
+    const race = createRace({ seed: 'klaar', circuit: 'tables', rivalCount: 1, trackLength: 700 });
+    for (let i = 0; i < RACE.maxTicks; i += 1) {
+      const view = race.view();
+      if (view.phase === 'garage') race.leaveGarage();
+      if (view.phase === 'finished') break;
+      race.tick({ ...driveRival(view.player.kart, view.track, AUTOPILOT), fire: false });
     }
-    expect(CIRCUIT_DISTANCE['grandprix']).toBe(RACE.distance);
+
+    const frozen = race.view().tick;
+    run(race, 10);
+    expect(race.view().tick).toBe(frozen);
+    expect(race.answer(1)).toBeNull();
   });
 
-  it('laat een expliciete afstand voorgaan op die van het circuit', () => {
-    const view = createRace({ seed: 'afstand', circuit: 'tables', opponentCount: 1, distance: 42 }).view();
-    expect(view.distance).toBe(42);
-  });
-
-  it('levert racetijden op in de orde van de recordtijden uit het ontwerp', () => {
+  it('werkt op elk circuit', () => {
     for (const circuit of CIRCUITS) {
-      const { result } = run({ behaviour: 'always-right', thinkSeconds: 1.5, circuit, opponentCount: 3 });
-      // Een sterke ronde duurt tussen de anderhalve en vier minuten.
-      expect(result.seconds).toBeGreaterThan(80);
-      expect(result.seconds).toBeLessThan(240);
-    }
-  });
-});
-
-describe('race, rijstroken', () => {
-  it('geeft elke racer een vaste rijstrook die niet met de positie meewisselt', () => {
-    const race = createRace({ seed: 'strook', circuit: 'tables', opponentCount: 3 });
-    const laneById = new Map(race.view().racers.map((r) => [r.id, r.lane]));
-    expect(new Set(laneById.values()).size).toBe(4);
-
-    // Laat het veld flink door elkaar lopen en controleer dat de stroken vastliggen.
-    for (let i = 0; i < 600; i += 1) {
-      if (i % 37 === 0) race.answer(race.view().question.answer);
-      race.tick();
-      for (const racer of race.view().racers) {
-        expect(racer.lane).toBe(laneById.get(racer.id));
+      const race = createRace({ seed: `c-${circuit}`, circuit, rivalCount: 1, trackLength: 800 });
+      for (let i = 0; i < RACE.maxTicks; i += 1) {
+        const view = race.view();
+        if (view.phase === 'garage') race.leaveGarage();
+        if (view.phase === 'finished') break;
+        race.tick({ ...driveRival(view.player.kart, view.track, AUTOPILOT), fire: false });
       }
-    }
-  });
-
-  it('zet de speler in de voorste rijstrook', () => {
-    for (const count of [1, 2, 3]) {
-      const view = createRace({ seed: 'voorste', circuit: 'tables', opponentCount: count }).view();
-      expect(view.player.lane).toBe(count);
-      expect(Math.max(...view.racers.map((r) => r.lane))).toBe(count);
+      expect(race.view().result).not.toBeNull();
     }
   });
 });

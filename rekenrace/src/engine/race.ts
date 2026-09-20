@@ -1,44 +1,38 @@
 /**
- * De race-simulatie. Draait op een vaste timestep van 60 Hz en raakt geen DOM aan:
- * volledig headless draaibaar en testbaar.
+ * De race: bindt baan, karts, garage, tegenstanders en raketten samen.
+ * Vaste timestep van 60 Hz, puur headless — geen DOM, geen requestAnimationFrame.
+ *
+ * Belangrijk: de race loopt door terwijl je in de garage staat. Elke extra som
+ * levert voorraad op maar kost baanpositie, en dat is precies de afweging.
  */
 
-import { CIRCUIT_DISTANCE, OPPONENTS, RACE, SPEED_FACTOR, STREAK, TICK_HZ, UI } from '../config.ts';
+import { RACE, TICK_HZ } from '../config.ts';
 import { createDifficulty, recordAttempt, type DifficultyState } from './difficulty.ts';
-import { clamp } from './math.ts';
-import { createQuestionSource, type Circuit, type Level, type Question, type QuestionSource } from './questions.ts';
+import { answerGarage, openGarage, tickGarage, type GarageAnswer, type GarageContext, type GarageSession } from './garage.ts';
+import { applyRocketHit, applySupply, createKart, stepKart, type Kart, type KartInput } from './kart.ts';
+import { createQuestionSource, type Circuit, type Level, type Question } from './questions.ts';
 import { createRng } from './rng.ts';
+import { rivalProfiles, stepRival, wantsToFire, type RivalProfile } from './opponent.ts';
+import { fireRocket, stepRockets, type Rocket, type RocketTarget } from './rocket.ts';
+import { createTrack, type Garage, type Track } from './track.ts';
 
-export type RacePhase = 'running' | 'reveal' | 'finished';
+export type RacePhase = 'countdown' | 'racing' | 'garage' | 'finished';
+
+export interface RaceInput extends KartInput {
+  /** Vuurt een mini-raket af, als er een op voorraad is. */
+  readonly fire: boolean;
+}
+
+export const NO_RACE_INPUT: RaceInput = { steer: 0, brake: false, turbo: false, fire: false };
 
 export interface Racer {
   readonly id: string;
   readonly name: string;
   readonly isPlayer: boolean;
-  /**
-   * Vaste baan van deze racer, van 0 tot en met het aantal racers - 1.
-   * Anders dan `position` verandert dit nooit, zodat de renderlaag en de HUD
-   * per racer een vaste rijstrook en kleur kunnen aanhouden.
-   */
-  readonly lane: number;
-  /** Afgelegde afstand in baan-eenheden. */
-  readonly distance: number;
-  /** Tick waarop deze racer over de finish kwam, of null zolang dat niet zo is. */
-  readonly finishTick: number | null;
+  readonly kart: Kart;
   /** Plaats in het veld, 1 is voorop. */
   readonly position: number;
-}
-
-export interface AnswerOutcome {
-  readonly correct: boolean;
-  readonly question: Question;
-  readonly given: number;
-  readonly reactionSeconds: number;
-  /** clamp(1.6 - reactietijd / 5, 0.4, 1.6) */
-  readonly speedFactor: number;
-  /** True als dit antwoord de turbo aanzette. */
-  readonly turbo: boolean;
-  readonly streak: number;
+  readonly finishTick: number | null;
 }
 
 export interface SlowestQuestion {
@@ -49,10 +43,11 @@ export interface SlowestQuestion {
 export interface RaceStats {
   readonly asked: number;
   readonly correct: number;
-  /** Fractie tussen 0 en 1; 1 zolang er nog niets beantwoord is. */
   readonly accuracy: number;
   readonly averageReaction: number;
   readonly slowest: SlowestQuestion | null;
+  /** Hoeveel tijd je in totaal in de garages hebt gestaan. */
+  readonly garageSeconds: number;
 }
 
 export interface RaceResult {
@@ -60,7 +55,6 @@ export interface RaceResult {
   readonly racers: readonly Racer[];
   readonly seconds: number;
   readonly stats: RaceStats;
-  /** True als de race op de tijdslimiet stuk liep in plaats van op de finish. */
   readonly timedOut: boolean;
 }
 
@@ -69,81 +63,87 @@ export interface RaceView {
   readonly seconds: number;
   readonly phase: RacePhase;
   readonly circuit: Circuit;
-  readonly distance: number;
-  readonly racers: readonly Racer[];
+  readonly track: Track;
   readonly player: Racer;
-  /** De som in beeld. Tijdens 'reveal' is dit de som die net fout ging. */
-  readonly question: Question;
-  /** Hoe lang de huidige som al in beeld staat; dit is de reactietijd bij antwoorden. */
-  readonly questionSeconds: number;
+  readonly racers: readonly Racer[];
+  readonly rockets: readonly Rocket[];
+  /** De garage waar je nu in staat, of null. */
+  readonly garage: GarageSession | null;
   readonly level: Level;
-  readonly speed: number;
-  readonly streak: number;
-  readonly turboTicksLeft: number;
-  readonly penaltyTicksLeft: number;
-  /** Ticks dat het juiste antwoord nog in beeld staat na een fout. */
-  readonly revealTicksLeft: number;
   readonly stats: RaceStats;
   readonly result: RaceResult | null;
+  /** Aantal brandende lampen in het startsein; het laatste is groen. */
+  readonly lightsLit: number;
 }
 
 export interface RaceOptions {
   readonly seed: number | string;
   readonly circuit: Circuit;
   /** Aantal tegenstanders, 1 tot 3. */
-  readonly opponentCount: number;
-  /** Overschrijft de afstand van het circuit; vooral handig in tests. */
-  readonly distance?: number;
+  readonly rivalCount: number;
   readonly startLevel?: Level;
+  readonly trackLength?: number;
 }
 
 export interface Race {
-  /** Eén simulatiestap van 1 / 60 seconde. */
-  tick(): void;
-  /** Verwerkt een ingetypt antwoord. Geeft null als er op dit moment niets te beantwoorden valt. */
-  answer(value: number): AnswerOutcome | null;
-  /** Momentopname van de hele state, alleen om te lezen. */
+  tick(input: RaceInput): void;
+  /** Beantwoordt de som in de garage. Geeft null als je er niet in staat. */
+  answer(value: number): GarageAnswer | null;
+  /** Rijdt de garage weer uit. */
+  leaveGarage(): void;
   view(): RaceView;
 }
 
-const REVEAL_TICKS = Math.round((UI.revealMs / 1000) * TICK_HZ);
+/** Duur van het startsein: drie rode lampen en dan groen. */
+const COUNTDOWN_TICKS = TICK_HZ * 3;
+const LIGHT_TICKS = COUNTDOWN_TICKS / 4;
 
-/** clamp(1.6 - reactietijd / 5, 0.4, 1.6): snel antwoorden loont. */
-export function speedFactorFor(reactionSeconds: number): number {
-  return clamp(SPEED_FACTOR.base - reactionSeconds / SPEED_FACTOR.divisor, SPEED_FACTOR.min, SPEED_FACTOR.max);
-}
-
-interface OpponentState {
-  id: string;
-  name: string;
-  pace: number;
-  phase: number;
-  distance: number;
+interface RivalState {
+  readonly profile: RivalProfile;
+  kart: Kart;
   finishTick: number | null;
 }
 
-const OPPONENT_NAMES = ['Haas', 'Vos', 'Egel'] as const;
-
 export function createRace(options: RaceOptions): Race {
-  const distance = options.distance ?? CIRCUIT_DISTANCE[options.circuit] ?? RACE.distance;
-  const count = clamp(Math.round(options.opponentCount), OPPONENTS.minCount, OPPONENTS.maxCount);
-  const rng = createRng(`${String(options.seed)}:race`);
-  const source: QuestionSource = createQuestionSource(`${String(options.seed)}:questions`, options.circuit);
+  const seed = String(options.seed);
+  const track = createTrack({ seed, ...(options.trackLength === undefined ? {} : { length: options.trackLength }) });
+  const rng = createRng(`${seed}:race`);
+  const source = createQuestionSource(`${seed}:questions`, options.circuit);
 
   let difficulty: DifficultyState = createDifficulty(options.startLevel ?? undefined);
-  let question: Question = source.next(difficulty.level);
+  const ctx: GarageContext = {
+    rng,
+    level: () => difficulty.level,
+    nextQuestion: (level) => source.next(level),
+  };
 
   let tickCount = 0;
-  let phase: RacePhase = 'running';
-  let speed: number = RACE.vBase;
-  let playerDistance = 0;
+  let phase: RacePhase = 'countdown';
+  let player = createKart({ x: track.centerX(0), y: 0 });
   let playerFinishTick: number | null = null;
-  let penaltyTicksLeft = 0;
-  let turboTicksLeft = 0;
-  let revealTicksLeft = 0;
-  let streak = 0;
-  /** Ticks sinds de huidige som in beeld kwam; hieruit volgt de reactietijd. */
-  let ticksOnQuestion = 0;
+
+  const profiles = rivalProfiles(options.rivalCount);
+  const rivals: RivalState[] = profiles.map((profile, index) => ({
+    profile,
+    // Naast elkaar op de startgrid, elk in zijn eigen strook.
+    kart: createKart({
+      // Om en om links en rechts van de speler, die zelf in het midden staat.
+      x: track.centerX(0) + (index % 2 === 0 ? -1 : 1) * (Math.floor(index / 2) + 1) * 95,
+      y: 0,
+      speedFactor: profile.speedFactor,
+      // Ze tanken en bewapenen zich buiten beeld: ze stoppen immers nooit.
+      rockets: Number.MAX_SAFE_INTEGER,
+    }),
+    finishTick: null,
+  }));
+
+  let rockets: Rocket[] = [];
+  let nextRocketId = 1;
+
+  let garage: GarageSession | null = null;
+  /** De garage die je net verlaten hebt, zodat je er niet meteen weer in rolt. */
+  let leftGarageId: string | null = null;
+  let garageTicks = 0;
 
   let asked = 0;
   let correct = 0;
@@ -151,63 +151,40 @@ export function createRace(options: RaceOptions): Race {
   let slowest: SlowestQuestion | null = null;
   let result: RaceResult | null = null;
 
-  const opponents: OpponentState[] = Array.from({ length: count }, (_, i) => ({
-    id: `opponent-${i + 1}`,
-    name: OPPONENT_NAMES[i] ?? `Tegenstander ${i + 1}`,
-    pace: OPPONENTS.pace[i] ?? OPPONENTS.pace[OPPONENTS.pace.length - 1]!,
-    // Eigen fase, zodat de tegenstanders niet in de pas lopen.
-    phase: rng.next() * Math.PI * 2,
-    distance: 0,
-    finishTick: null,
-  }));
-
   const statsView = (): RaceStats => ({
     asked,
     correct,
     accuracy: asked === 0 ? 1 : correct / asked,
     averageReaction: asked === 0 ? 0 : reactionTotal / asked,
     slowest,
+    garageSeconds: garageTicks / TICK_HZ,
   });
 
-  /**
-   * Rangschikt het veld: wie gefinisht is staat voorop op finishtijd,
-   * de rest daarachter op afgelegde afstand.
-   */
   const rankRacers = (): Racer[] => {
     const entries = [
-      // De speler rijdt altijd in de voorste baan, de tegenstanders daarachter.
-      {
-        id: 'player',
-        name: 'Blue Dog',
-        isPlayer: true,
-        lane: opponents.length,
-        distance: playerDistance,
-        finishTick: playerFinishTick,
-      },
-      ...opponents.map((o, i) => ({
-        id: o.id,
-        name: o.name,
+      { id: 'player', name: 'Blue Dog', isPlayer: true, kart: player, finishTick: playerFinishTick },
+      ...rivals.map((rival) => ({
+        id: rival.profile.id,
+        name: rival.profile.name,
         isPlayer: false,
-        lane: i,
-        distance: o.distance,
-        finishTick: o.finishTick,
+        kart: rival.kart,
+        finishTick: rival.finishTick,
       })),
     ];
     entries.sort((a, b) => {
       if (a.finishTick !== null && b.finishTick !== null) return a.finishTick - b.finishTick;
       if (a.finishTick !== null) return -1;
       if (b.finishTick !== null) return 1;
-      return b.distance - a.distance;
+      return b.kart.y - a.kart.y;
     });
-    return entries.map((e, i) => ({ ...e, position: i + 1 }));
+    return entries.map((entry, index) => ({ ...entry, position: index + 1 }));
   };
 
   const finish = (timedOut: boolean): void => {
     phase = 'finished';
     const racers = rankRacers();
-    const player = racers.find((r) => r.isPlayer)!;
     result = {
-      position: player.position,
+      position: racers.find((racer) => racer.isPlayer)!.position,
       racers,
       seconds: tickCount / TICK_HZ,
       stats: statsView(),
@@ -215,58 +192,89 @@ export function createRace(options: RaceOptions): Race {
     };
   };
 
-  const advancePlayer = (): void => {
-    if (turboTicksLeft > 0) {
-      speed = RACE.vMax;
-      turboTicksLeft -= 1;
-    } else if (penaltyTicksLeft > 0) {
-      speed = RACE.vBase * RACE.penaltyFactor;
-      penaltyTicksLeft -= 1;
-    } else {
-      // Terug naar vBase met de drag-factor, per tick.
-      speed = RACE.vBase + (speed - RACE.vBase) * RACE.drag;
+  const targets = (): RocketTarget[] => [
+    { id: 'player', kart: player },
+    ...rivals.map((rival) => ({ id: rival.profile.id, kart: rival.kart })),
+  ];
+
+  const damage = (id: string): void => {
+    if (id === 'player') {
+      player = applyRocketHit(player);
+      return;
     }
-    speed = clamp(speed, 0, RACE.vMax);
-    playerDistance += speed / TICK_HZ;
-    if (playerDistance >= distance) {
-      playerDistance = distance;
-      playerFinishTick = tickCount;
-    }
+    const rival = rivals.find((candidate) => candidate.profile.id === id);
+    if (rival !== undefined) rival.kart = applyRocketHit(rival.kart);
   };
 
-  const advanceOpponents = (): void => {
-    for (const o of opponents) {
-      if (o.finishTick !== null) continue;
-      const wobble = OPPONENTS.paceWobble * Math.sin((tickCount / OPPONENTS.wobbleTicks) * Math.PI * 2 + o.phase);
-      o.distance += Math.max(0, o.pace + wobble) / TICK_HZ;
-      if (o.distance >= distance) {
-        o.distance = distance;
-        o.finishTick = tickCount;
+  /** Beweegt de tegenstanders en de raketten. Gebeurt ook terwijl je in de garage staat. */
+  const advanceWorld = (): void => {
+    for (const rival of rivals) {
+      if (rival.finishTick !== null) continue;
+      rival.kart = stepRival(rival.kart, track, rival.profile);
+      if (rival.kart.y >= track.length) rival.finishTick = tickCount;
+
+      if (wantsToFire(rival.kart, player, rival.profile, tickCount)) {
+        const rocket = fireRocket(nextRocketId, rival.profile.id, rival.kart);
+        if (rocket !== null) {
+          rockets.push(rocket);
+          nextRocketId += 1;
+        }
       }
     }
+
+    const step = stepRockets(rockets, targets());
+    rockets = [...step.rockets];
+    for (const hit of step.hits) damage(hit.targetId);
   };
 
-  const nextQuestion = (): void => {
-    question = source.next(difficulty.level);
-    ticksOnQuestion = 0;
+  const enterGarageIfInside = (): void => {
+    const found: Garage | null = track.garageAt(player.x, player.y);
+    if (found === null) {
+      // Pas als je de voetafdruk uit bent mag je er weer in.
+      leftGarageId = null;
+      return;
+    }
+    if (found.id === leftGarageId) return;
+
+    garage = openGarage(found, player, ctx);
+    phase = 'garage';
+    // De kart staat stil zolang je binnen bent.
+    player = { ...player, speed: 0 };
   };
 
-  const tick = (): void => {
+  const tick = (input: RaceInput): void => {
     if (phase === 'finished') return;
-
     tickCount += 1;
-    advancePlayer();
-    advanceOpponents();
 
-    if (phase === 'reveal') {
-      revealTicksLeft -= 1;
-      if (revealTicksLeft <= 0) {
-        revealTicksLeft = 0;
-        phase = 'running';
-        nextQuestion();
-      }
+    if (phase === 'countdown') {
+      // Voor groen beweegt er niets; het veld staat aan de start.
+      if (tickCount >= COUNTDOWN_TICKS) phase = 'racing';
+      return;
+    }
+
+    advanceWorld();
+
+    if (phase === 'garage' && garage !== null) {
+      garageTicks += 1;
+      garage = tickGarage(garage, player, ctx);
     } else {
-      ticksOnQuestion += 1;
+      player = stepKart(player, input, track);
+
+      if (input.fire && player.rockets > 0) {
+        const rocket = fireRocket(nextRocketId, 'player', player);
+        if (rocket !== null) {
+          rockets.push(rocket);
+          nextRocketId += 1;
+          player = { ...player, rockets: player.rockets - 1 };
+        }
+      }
+
+      if (player.y >= track.length) {
+        player = { ...player, y: track.length };
+        playerFinishTick = tickCount;
+      } else {
+        enterGarageIfInside();
+      }
     }
 
     if (playerFinishTick !== null) {
@@ -276,42 +284,33 @@ export function createRace(options: RaceOptions): Race {
     if (tickCount >= RACE.maxTicks) finish(true);
   };
 
-  const answer = (value: number): AnswerOutcome | null => {
-    if (phase !== 'running') return null;
+  const answer = (value: number): GarageAnswer | null => {
+    if (phase !== 'garage' || garage === null) return null;
 
-    const reactionSeconds = ticksOnQuestion / TICK_HZ;
-    const isCorrect = value === question.answer;
-    const speedFactor = speedFactorFor(reactionSeconds);
+    const outcome = answerGarage(garage, value, player, ctx);
+    if (outcome.session === garage) return null;
 
+    garage = outcome.session;
     asked += 1;
-    reactionTotal += reactionSeconds;
-    if (isCorrect) correct += 1;
-    if (slowest === null || reactionSeconds > slowest.seconds) {
-      slowest = { question, seconds: reactionSeconds };
+    reactionTotal += outcome.reactionSeconds;
+    if (outcome.correct) correct += 1;
+    if (slowest === null || outcome.reactionSeconds > slowest.seconds) {
+      slowest = { question: outcome.session.question, seconds: outcome.reactionSeconds };
     }
-    difficulty = recordAttempt(difficulty, { correct: isCorrect, reactionSeconds });
+    difficulty = recordAttempt(difficulty, {
+      correct: outcome.correct,
+      reactionSeconds: outcome.reactionSeconds,
+    });
 
-    let turbo = false;
-    if (isCorrect) {
-      streak += 1;
-      penaltyTicksLeft = 0;
-      speed = clamp(speed + RACE.vBoost * speedFactor, 0, RACE.vMax);
-      if (streak % STREAK.threshold === 0) {
-        turbo = true;
-        turboTicksLeft = STREAK.ticks;
-      }
-      nextQuestion();
-    } else {
-      streak = 0;
-      turboTicksLeft = 0;
-      speed = RACE.vBase * RACE.penaltyFactor;
-      penaltyTicksLeft = RACE.penaltyTicks;
-      // Het juiste antwoord blijft even staan voordat de volgende som komt.
-      phase = 'reveal';
-      revealTicksLeft = REVEAL_TICKS;
-    }
+    if (outcome.earned !== null) player = applySupply(player, outcome.earned);
+    return outcome;
+  };
 
-    return { correct: isCorrect, question, given: value, reactionSeconds, speedFactor, turbo, streak };
+  const leaveGarage = (): void => {
+    if (phase !== 'garage' || garage === null) return;
+    leftGarageId = garage.garage.id;
+    garage = null;
+    phase = 'racing';
   };
 
   const view = (): RaceView => {
@@ -321,21 +320,18 @@ export function createRace(options: RaceOptions): Race {
       seconds: tickCount / TICK_HZ,
       phase,
       circuit: options.circuit,
-      distance,
+      track,
+      player: racers.find((racer) => racer.isPlayer)!,
       racers,
-      player: racers.find((r) => r.isPlayer)!,
-      question,
-      questionSeconds: ticksOnQuestion / TICK_HZ,
+      rockets,
+      garage,
       level: difficulty.level,
-      speed,
-      streak,
-      turboTicksLeft,
-      penaltyTicksLeft,
-      revealTicksLeft,
       stats: statsView(),
       result,
+      lightsLit: phase === 'countdown' ? Math.min(4, Math.floor(tickCount / LIGHT_TICKS) + 1) : 4,
     };
   };
 
-  return { tick, answer, view };
+  return { tick, answer, leaveGarage, view };
 }
+

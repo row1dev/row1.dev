@@ -21,6 +21,7 @@ function fakeResult(overrides: Partial<RaceResult> = {}): RaceResult {
     timedOut: false,
     racers: [],
     stats: {
+      garageSeconds: 12,
       asked: 27,
       correct: 24,
       accuracy: 24 / 27,
@@ -39,10 +40,10 @@ describe('schermen', () => {
 
   it('toont er altijd precies één', () => {
     const screens = createScreens();
-    for (const name of ['menu', 'race', 'result'] as const) {
+    for (const name of ['menu', 'race', 'garage', 'result'] as const) {
       screens.show(name);
       expect(screens.current()).toBe(name);
-      const visible = ['#screen-menu', '#screen-race', '#screen-result'].filter(
+      const visible = ['#screen-menu', '#screen-race', '#screen-garage', '#screen-result'].filter(
         (selector) => !document.querySelector<HTMLElement>(selector)!.hidden,
       );
       expect(visible).toEqual([`#screen-${name}`]);
@@ -54,7 +55,7 @@ describe('startscherm', () => {
   beforeEach(mountPage);
 
   it('toont vier circuits met hun record, of "nog nooit"', () => {
-    const menu = createMenu({ onStart: vi.fn(), onOpponentCount: vi.fn(), onToggleMute: vi.fn() });
+    const menu = createMenu({ onStart: vi.fn(), onRivalCount: vi.fn(), onToggleMute: vi.fn() });
     menu.render({ tables: { seconds: 104, accuracy: 0.9, date: '2026-01-01' } }, 2, false);
 
     const cards = [...document.querySelectorAll('.circuit')];
@@ -71,27 +72,27 @@ describe('startscherm', () => {
 
   it('start een race met één tap op een circuit, zonder bevestigingsscherm', () => {
     const onStart = vi.fn();
-    createMenu({ onStart, onOpponentCount: vi.fn(), onToggleMute: vi.fn() });
+    createMenu({ onStart, onRivalCount: vi.fn(), onToggleMute: vi.fn() });
     document.querySelectorAll<HTMLButtonElement>('.circuit')[1]?.click();
     expect(onStart).toHaveBeenCalledExactlyOnceWith('addition');
   });
 
   it('laat het aantal tegenstanders kiezen en markeert de keuze', () => {
-    const onOpponentCount = vi.fn();
-    const menu = createMenu({ onStart: vi.fn(), onOpponentCount, onToggleMute: vi.fn() });
+    const onRivalCount = vi.fn();
+    const menu = createMenu({ onStart: vi.fn(), onRivalCount, onToggleMute: vi.fn() });
     menu.render({}, 3, false);
 
-    const chips = [...document.querySelectorAll<HTMLButtonElement>('#opponent-chips .chip')];
+    const chips = [...document.querySelectorAll<HTMLButtonElement>('#rival-chips .chip')];
     expect(chips.map((c) => c.textContent)).toEqual(['1', '2', '3']);
     expect(chips[2]?.getAttribute('aria-pressed')).toBe('true');
     expect(chips[0]?.getAttribute('aria-pressed')).toBe('false');
 
     chips[0]?.click();
-    expect(onOpponentCount).toHaveBeenCalledWith(1);
+    expect(onRivalCount).toHaveBeenCalledWith(1);
   });
 
   it('toont de geluidsstatus', () => {
-    const menu = createMenu({ onStart: vi.fn(), onOpponentCount: vi.fn(), onToggleMute: vi.fn() });
+    const menu = createMenu({ onStart: vi.fn(), onRivalCount: vi.fn(), onToggleMute: vi.fn() });
     menu.render({}, 2, false);
     expect(document.querySelector('#menu-mute-label')?.textContent).toBe('geluid aan');
     menu.render({}, 2, true);
@@ -146,7 +147,7 @@ describe('resultaatscherm', () => {
   });
 });
 
-describe('draai-je-telefoon', () => {
+describe('houd-je-telefoon-rechtop', () => {
   beforeEach(mountPage);
 
   const setViewport = (width: number, height: number): void => {
@@ -154,15 +155,16 @@ describe('draai-je-telefoon', () => {
     Object.defineProperty(window, 'innerHeight', { value: height, configurable: true });
   };
 
-  it('verschijnt staand en verdwijnt liggend', () => {
+  it('verschijnt liggend en verdwijnt staand', () => {
     const hint = createPortraitHint();
     const overlay = document.querySelector<HTMLElement>('#portrait-hint')!;
 
-    setViewport(390, 844);
+    // Dit spel speelt rechtop: liggend vragen we je te draaien.
+    setViewport(844, 390);
     expect(hint.update()).toBe(true);
     expect(overlay.hidden).toBe(false);
 
-    setViewport(844, 390);
+    setViewport(390, 844);
     expect(hint.update()).toBe(false);
     expect(overlay.hidden).toBe(true);
   });

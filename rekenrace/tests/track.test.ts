@@ -168,3 +168,22 @@ describe('track, garages', () => {
     }
   });
 });
+
+describe('track, de garage raken', () => {
+  const track = createTrack({ seed: 'raken' });
+
+  it('beslaat het grootste deel van de baan, zodat je hem niet zomaar mist', () => {
+    for (const garage of track.garages) {
+      const edge = track.halfWidth(garage.y);
+      expect(garage.halfWidth / edge).toBeGreaterThan(0.5);
+    }
+  });
+
+  it('laat aan weerszijden ruimte om er bewust omheen te rijden', () => {
+    const kartWidth = KART_RADIUS * 2;
+    for (const garage of track.garages) {
+      const gap = track.halfWidth(garage.y) - garage.halfWidth;
+      expect(gap).toBeGreaterThan(kartWidth);
+    }
+  });
+});

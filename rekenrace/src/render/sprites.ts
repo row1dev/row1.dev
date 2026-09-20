@@ -2,45 +2,29 @@
  * Sprites worden in code getekend, niet uit plaatjes geladen: scheelt assets,
  * schaalt scherp mee met devicePixelRatio en houdt alle art origineel.
  *
- * Alles tekent in een lokale ruimte van ongeveer 64 breed bij 44 hoog, met de
- * oorsprong op de grond onder het midden van de sprite.
+ * Alles is van bovenaf gezien. Een kart tekent met zijn neus naar +y en wordt
+ * door de renderlaag om zijn middelpunt gedraaid.
  */
 
 import { THEME } from '../config.ts';
 
-export const SPRITE_WIDTH = 64;
-export const SPRITE_HEIGHT = 44;
-
-export type EarShape = 'floppy' | 'long' | 'pointy' | 'spiky';
-export type TailShape = 'curl' | 'puff' | 'bushy' | 'none';
-
-export interface RunnerSkin {
+export interface KartSkin {
   readonly body: string;
   readonly shade: string;
-  readonly belly: string;
-  readonly ears: EarShape;
-  readonly tail: TailShape;
+  readonly trim: string;
+  /** Kleur van de rijder in het zadel. */
+  readonly driver: string;
 }
 
-export const BLUE_DOG: RunnerSkin = {
+export const BLUE_DOG_SKIN: KartSkin = {
   body: THEME.dog,
   shade: THEME.dogDark,
-  belly: THEME.dogBelly,
-  ears: 'floppy',
-  tail: 'curl',
+  trim: THEME.dogBelly,
+  driver: '#8fc4ff',
 };
 
-/** Maakt een tegenstander-skin uit één kleur. */
-export function opponentSkin(color: string, index: number): RunnerSkin {
-  const ears: EarShape[] = ['long', 'pointy', 'spiky'];
-  const tails: TailShape[] = ['puff', 'bushy', 'none'];
-  return {
-    body: color,
-    shade: shade(color, -0.25),
-    belly: shade(color, 0.45),
-    ears: ears[index % ears.length]!,
-    tail: tails[index % tails.length]!,
-  };
+export function rivalSkin(color: string): KartSkin {
+  return { body: color, shade: shade(color, -0.3), trim: shade(color, 0.5), driver: shade(color, 0.35) };
 }
 
 /** Maakt een hexkleur lichter (amount > 0) of donkerder (amount < 0). */
@@ -56,167 +40,222 @@ export function shade(hex: string, amount: number): string {
   return `rgb(${channel(16)}, ${channel(8)}, ${channel(0)})`;
 }
 
-function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, fill: string): void {
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  fill: string,
+): void {
   ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.roundRect(x, y, w, h, r);
   ctx.fillStyle = fill;
   ctx.fill();
 }
 
-function drawLeg(ctx: CanvasRenderingContext2D, x: number, swing: number, color: string): void {
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 5;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(x, -14);
-  ctx.lineTo(x + swing * 7, -4);
-  ctx.lineTo(x + swing * 9, 0);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawEars(ctx: CanvasRenderingContext2D, skin: RunnerSkin, bob: number): void {
-  ctx.fillStyle = skin.shade;
-  switch (skin.ears) {
-    case 'floppy':
-      ellipse(ctx, 18, -30 + bob, 5, 9, skin.shade);
-      break;
-    case 'long':
-      ctx.save();
-      ctx.translate(20, -34 + bob);
-      ctx.rotate(-0.35);
-      ellipse(ctx, 0, -6, 3.5, 12, skin.shade);
-      ctx.restore();
-      break;
-    case 'pointy':
-      ctx.beginPath();
-      ctx.moveTo(15, -32 + bob);
-      ctx.lineTo(22, -44 + bob);
-      ctx.lineTo(26, -30 + bob);
-      ctx.closePath();
-      ctx.fill();
-      break;
-    case 'spiky':
-      for (let i = 0; i < 4; i += 1) {
-        ctx.beginPath();
-        ctx.moveTo(-6 + i * 7, -26 + bob);
-        ctx.lineTo(-10 + i * 7, -38 + bob);
-        ctx.lineTo(-1 + i * 7, -28 + bob);
-        ctx.closePath();
-        ctx.fill();
-      }
-      break;
-  }
-}
-
-function drawTail(ctx: CanvasRenderingContext2D, skin: RunnerSkin, wag: number): void {
-  ctx.save();
-  ctx.translate(-22, -22);
-  ctx.rotate(wag * 0.4);
-  switch (skin.tail) {
-    case 'curl':
-      ctx.strokeStyle = skin.body;
-      ctx.lineWidth = 5;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.quadraticCurveTo(-10, -4, -8, -14);
-      ctx.stroke();
-      break;
-    case 'puff':
-      ellipse(ctx, -7, -3, 6, 6, skin.belly);
-      break;
-    case 'bushy':
-      ctx.save();
-      ctx.rotate(-0.4);
-      ellipse(ctx, -12, -2, 12, 6, skin.body);
-      ellipse(ctx, -20, -2, 5, 4, skin.belly);
-      ctx.restore();
-      break;
-    case 'none':
-      break;
-  }
-  ctx.restore();
-}
-
-export interface RunnerPose {
-  /** Fase van de loopcyclus in radialen; loopt door met de snelheid. */
-  readonly phase: number;
-  /** 0 = stilstand, 1 = topsnelheid. Bepaalt hoe gestrekt de sprite staat. */
+export interface KartPose {
+  /** 0 = stilstand, 1 = topsnelheid; bepaalt de uitlaatvlam. */
   readonly effort: number;
-  /** True tijdens turbo: dan komt er een extra gloed omheen. */
   readonly turbo: boolean;
-  /** True tijdens de strafperiode: dan hangt de sprite wat achterover. */
-  readonly braking: boolean;
+  /** Zonder kart loop je: dan tekenen we het hondje zelf. */
+  readonly onFoot: boolean;
+  /** Loopt door met de tijd, voor de wielen en de pootjes. */
+  readonly phase: number;
 }
 
-/**
- * Tekent een rennend dier. De oorsprong ligt op de grond onder de sprite en
- * de sprite kijkt naar rechts.
- */
-export function drawRunner(ctx: CanvasRenderingContext2D, skin: RunnerSkin, pose: RunnerPose): void {
-  const bob = Math.sin(pose.phase * 2) * (1 + pose.effort * 1.5);
-  const lean = pose.braking ? -0.12 : pose.effort * 0.14;
+/** Een kart van bovenaf, neus naar +y, middelpunt op de oorsprong. */
+export function drawKart(ctx: CanvasRenderingContext2D, skin: KartSkin, pose: KartPose): void {
+  if (pose.onFoot) {
+    drawRunner(ctx, skin, pose);
+    return;
+  }
 
   ctx.save();
+
   if (pose.turbo) {
-    // Additieve gloed met een zachte rand; een vlakke ellips oogt als een plas.
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const glow = ctx.createRadialGradient(0, -22, 4, 0, -22, 44);
-    glow.addColorStop(0, 'rgba(255, 207, 61, 0.55)');
-    glow.addColorStop(0.55, 'rgba(255, 207, 61, 0.18)');
+    const glow = ctx.createRadialGradient(0, 0, 3, 0, 0, 34);
+    glow.addColorStop(0, 'rgba(255, 207, 61, 0.5)');
     glow.addColorStop(1, 'rgba(255, 207, 61, 0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.ellipse(0, -22, 46, 30, 0, 0, Math.PI * 2);
+    ctx.arc(0, 0, 34, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 
-  // Schaduw op de grond, losgekoppeld van het stuiteren van het lijf.
+  // Uitlaatvlam achter de kart, sterker naarmate je harder gaat.
+  const flame = pose.effort * (pose.turbo ? 22 : 12);
+  if (flame > 1) {
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    const fire = ctx.createLinearGradient(0, -12, 0, -12 - flame);
+    fire.addColorStop(0, pose.turbo ? '#fff0a8' : '#ffb347');
+    fire.addColorStop(1, 'rgba(255, 90, 40, 0)');
+    ctx.fillStyle = fire;
+    ctx.beginPath();
+    ctx.moveTo(-5, -11);
+    ctx.lineTo(0, -11 - flame);
+    ctx.lineTo(5, -11);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   ctx.save();
-  ctx.globalAlpha = 0.25;
-  ellipse(ctx, 0, 1, 24, 4, '#000000');
+  ctx.globalAlpha = 0.28;
+  ctx.beginPath();
+  ctx.ellipse(2, -2, 15, 19, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#000000';
+  ctx.fill();
   ctx.restore();
 
-  ctx.rotate(lean);
-  ctx.translate(0, bob);
+  // Wielen: donkere blokjes die net buiten de carrosserie uitsteken.
+  const wheel = (wx: number, wy: number): void => roundedRect(ctx, wx - 4.5, wy - 6, 9, 12, 3, '#1b1b22');
+  wheel(-12, -7);
+  wheel(12, -7);
+  wheel(-11, 9);
+  wheel(11, 9);
 
-  // Achterste poten eerst, zodat ze achter het lijf vallen.
-  drawLeg(ctx, -12, Math.sin(pose.phase), skin.shade);
-  drawLeg(ctx, 10, Math.sin(pose.phase + Math.PI), skin.shade);
+  // Carrosserie: breed achter, spits naar voren.
+  ctx.beginPath();
+  ctx.moveTo(0, 20);
+  ctx.quadraticCurveTo(11, 12, 11, -2);
+  ctx.lineTo(10, -13);
+  ctx.quadraticCurveTo(0, -17, -10, -13);
+  ctx.lineTo(-11, -2);
+  ctx.quadraticCurveTo(-11, 12, 0, 20);
+  ctx.closePath();
+  ctx.fillStyle = skin.body;
+  ctx.fill();
 
-  drawTail(ctx, skin, Math.sin(pose.phase * 2));
+  // Neuskegel en een streep over de motorkap.
+  roundedRect(ctx, -3, 8, 6, 10, 3, skin.trim);
+  roundedRect(ctx, -8, -12, 16, 6, 3, skin.shade);
 
-  // Romp.
-  ellipse(ctx, -2, -22, 22, 13, skin.body);
-  ellipse(ctx, -2, -17, 16, 7, skin.belly);
-
-  // Voorste poten.
-  drawLeg(ctx, -4, Math.sin(pose.phase + Math.PI * 0.5), skin.body);
-  drawLeg(ctx, 16, Math.sin(pose.phase + Math.PI * 1.5), skin.body);
-
-  // Kop.
-  ellipse(ctx, 18, -28 + bob * 0.4, 11, 10, skin.body);
-  ellipse(ctx, 27, -25 + bob * 0.4, 6, 5, skin.belly);
-  drawEars(ctx, skin, bob * 0.4);
-
-  // Neus en oog.
-  ellipse(ctx, 32, -25 + bob * 0.4, 2.5, 2.5, THEME.ink);
-  ellipse(ctx, 21, -31 + bob * 0.4, 1.8, 1.8, THEME.ink);
+  // De rijder in het zadel.
+  ctx.beginPath();
+  ctx.arc(0, 0, 6, 0, Math.PI * 2);
+  ctx.fillStyle = skin.driver;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, 2, 3.2, 0, Math.PI * 2);
+  ctx.fillStyle = skin.shade;
+  ctx.fill();
 
   ctx.restore();
 }
 
-/** Stofwolkje achter een remmende racer. */
-export function drawDust(ctx: CanvasRenderingContext2D, seed: number, strength: number): void {
+/** Zonder kart loop je zelf, van bovenaf gezien. */
+function drawRunner(ctx: CanvasRenderingContext2D, skin: KartSkin, pose: KartPose): void {
+  const swing = Math.sin(pose.phase * 2.5) * 4;
+
   ctx.save();
-  ctx.globalAlpha = 0.5 * strength;
-  for (let i = 0; i < 4; i += 1) {
-    const t = (seed + i * 0.27) % 1;
-    ellipse(ctx, -26 - t * 30, -6 - t * 10, 4 + t * 10, 3 + t * 7, '#d8ccb4');
-  }
+  ctx.globalAlpha = 0.25;
+  ctx.beginPath();
+  ctx.ellipse(1, -1, 9, 11, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#000000';
+  ctx.fill();
   ctx.restore();
+
+  // Pootjes die heen en weer gaan.
+  roundedRect(ctx, -8, -4 + swing, 5, 9, 2.5, skin.shade);
+  roundedRect(ctx, 3, -4 - swing, 5, 9, 2.5, skin.shade);
+
+  // Lijf en kop.
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 8, 11, 0, 0, Math.PI * 2);
+  ctx.fillStyle = skin.body;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, 9, 6, 0, Math.PI * 2);
+  ctx.fillStyle = skin.body;
+  ctx.fill();
+
+  // Oren en snuit.
+  roundedRect(ctx, -7, 8, 4, 7, 2, skin.shade);
+  roundedRect(ctx, 3, 8, 4, 7, 2, skin.shade);
+  ctx.beginPath();
+  ctx.arc(0, 14, 2.4, 0, Math.PI * 2);
+  ctx.fillStyle = THEME.ink;
+  ctx.fill();
+}
+
+/** Een mini-raket, neus naar +y. */
+export function drawRocket(ctx: CanvasRenderingContext2D, phase: number): void {
+  ctx.save();
+  ctx.globalAlpha = 0.8;
+  const trail = ctx.createLinearGradient(0, -6, 0, -22);
+  trail.addColorStop(0, 'rgba(255, 190, 90, 0.9)');
+  trail.addColorStop(1, 'rgba(255, 120, 40, 0)');
+  ctx.fillStyle = trail;
+  ctx.beginPath();
+  ctx.moveTo(-3, -5);
+  ctx.lineTo(0, -20 - Math.sin(phase * 8) * 4);
+  ctx.lineTo(3, -5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.moveTo(0, 9);
+  ctx.lineTo(3.5, 0);
+  ctx.lineTo(3.5, -6);
+  ctx.lineTo(-3.5, -6);
+  ctx.lineTo(-3.5, 0);
+  ctx.closePath();
+  ctx.fillStyle = THEME.wrong;
+  ctx.fill();
+  roundedRect(ctx, -1.4, -6, 2.8, 4, 1, '#ffffff');
+}
+
+/** Een cactus van bovenaf: een bol met armen. */
+export function drawCactus(ctx: CanvasRenderingContext2D, radius: number): void {
+  ctx.fillStyle = '#2f8f4e';
+  ctx.beginPath();
+  ctx.arc(0, 0, radius * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  for (let i = 0; i < 3; i += 1) {
+    const angle = (i / 3) * Math.PI * 2 + 0.4;
+    ctx.beginPath();
+    ctx.ellipse(Math.cos(angle) * radius * 0.6, Math.sin(angle) * radius * 0.6, radius * 0.34, radius * 0.24, angle, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#3fae63';
+  ctx.beginPath();
+  ctx.arc(-radius * 0.15, -radius * 0.15, radius * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** Een steen van bovenaf. */
+export function drawRock(ctx: CanvasRenderingContext2D, radius: number, seed: number): void {
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.beginPath();
+  ctx.ellipse(radius * 0.18, -radius * 0.18, radius, radius * 0.9, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#000000';
+  ctx.fill();
+  ctx.restore();
+
+  ctx.beginPath();
+  // Een licht onregelmatige vorm, vast per steen via de seed.
+  for (let i = 0; i < 7; i += 1) {
+    const angle = (i / 7) * Math.PI * 2;
+    const wobble = 0.82 + ((Math.sin(seed * 12.9898 + i * 4.1414) + 1) / 2) * 0.3;
+    const px = Math.cos(angle) * radius * wobble;
+    const py = Math.sin(angle) * radius * wobble;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#8a6b4f';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(-radius * 0.25, -radius * 0.25, radius * 0.4, 0, Math.PI * 2);
+  ctx.fillStyle = '#a5845f';
+  ctx.fill();
 }

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0e1726" />
-    <meta name="description" content="Race tegen de klok en tegen elkaar: hoe sneller je rekent, hoe harder Blue Dog loopt." />
+    <meta name="description" content="Rijd de baan af, stop bij de Rekengarage en reken je benzine, raketten en turbo bij elkaar." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="manifest.webmanifest" />
@@ -16,12 +16,13 @@
     <main id="app">
       <!-- Startscherm -->
       <section class="screen" id="screen-menu">
-        <h1 class="title">Blue Dog Rekenrace</h1>
+        <h1 class="title">Blue Dog<br /><span>Rekenrace</span></h1>
+        <p class="tagline">Rijd de baan af en reken bij de Rekengarage je benzine, raketten en turbo bij elkaar.</p>
         <div class="circuits" id="circuit-list"></div>
         <div class="menu-footer">
           <div class="field">
             <span class="field-label">Tegenstanders</span>
-            <div class="chips" id="opponent-chips"></div>
+            <div class="chips" id="rival-chips"></div>
           </div>
           <button class="chip mute" id="menu-mute" type="button" aria-pressed="false">
             <span aria-hidden="true">🔊</span> <span id="menu-mute-label">geluid aan</span>
@@ -32,20 +33,70 @@
       <!-- Racescherm -->
       <section class="screen" id="screen-race" hidden>
         <header class="hud" id="hud">
-          <span class="hud-position" id="hud-position">P1/2</span>
+          <span class="hud-position" id="hud-position">P1/3</span>
           <div class="hud-progress" id="hud-progress" role="img" aria-label="Voortgang">
             <div class="hud-progress-fill" id="hud-progress-fill"></div>
             <div class="hud-markers" id="hud-markers"></div>
           </div>
-          <span class="hud-distance" id="hud-distance">0m</span>
           <span class="hud-time" id="hud-time">00:00</span>
-          <span class="hud-streak" id="hud-streak">streak x0</span>
-          <button class="hud-mute" id="hud-mute" type="button" aria-label="Geluid aan of uit" aria-pressed="false">🔊</button>
-          <div class="hud-turbo" id="hud-turbo" hidden><div class="hud-turbo-fill" id="hud-turbo-fill"></div></div>
         </header>
 
         <div class="track">
           <canvas id="track-canvas"></canvas>
+          <div class="lights" id="lights" hidden></div>
+          <p class="toast" id="toast" hidden></p>
+        </div>
+
+        <div class="gauges" id="gauges">
+          <div class="gauge">
+            <span class="gauge-label">km/u</span>
+            <strong class="gauge-value" id="gauge-speed">0</strong>
+          </div>
+          <div class="gauge wide">
+            <span class="gauge-label">benzine</span>
+            <div class="bar"><div class="bar-fill fuel" id="gauge-fuel"></div></div>
+          </div>
+          <div class="gauge wide">
+            <span class="gauge-label">conditie</span>
+            <div class="bar"><div class="bar-fill condition" id="gauge-condition"></div></div>
+          </div>
+        </div>
+
+        <div class="controls" id="controls">
+          <button class="pad" id="steer-left" type="button" aria-label="Naar links">◀</button>
+          <div class="actions">
+            <button class="action rocket" id="act-rocket" type="button" aria-label="Raket afvuren">
+              <span aria-hidden="true">🚀</span><b id="count-rockets">0</b>
+            </button>
+            <button class="action turbo" id="act-turbo" type="button" aria-label="Turbo">
+              <span aria-hidden="true">⚡</span><b id="count-boosts">0</b>
+            </button>
+            <button class="action brake" id="act-brake" type="button" aria-label="Remmen">REM</button>
+          </div>
+          <button class="pad" id="steer-right" type="button" aria-label="Naar rechts">▶</button>
+        </div>
+      </section>
+
+      <!-- Rekengarage -->
+      <section class="screen" id="screen-garage" hidden>
+        <header class="garage-head">
+          <span class="garage-title">Rekengarage</span>
+          <span class="garage-kind" id="garage-kind"></span>
+          <button class="leave" id="garage-leave" type="button">Wegwezen ▶</button>
+        </header>
+
+        <div class="garage-top">
+          <div class="prize" id="prize">
+            <span class="prize-icon" id="prize-icon" aria-hidden="true">⛽</span>
+            <span class="prize-label" id="prize-label">Benzine</span>
+          </div>
+          <dl class="garage-stats">
+            <dt>Benzine</dt><dd id="garage-fuel">0</dd>
+            <dt>Conditie</dt><dd id="garage-condition">0</dd>
+            <dt>Raketten</dt><dd id="garage-rockets">0</dd>
+            <dt>Turbo</dt><dd id="garage-boosts">0</dd>
+            <dt>Aantal sommen</dt><dd id="garage-answered">0</dd>
+          </dl>
         </div>
 
         <div class="question" id="question">
@@ -59,6 +110,7 @@
       <!-- Resultaatscherm -->
       <section class="screen" id="screen-result" hidden>
         <h2 class="result-heading" id="result-heading">2e plaats <span id="result-time">01:38</span></h2>
+        <ol class="podium" id="podium"></ol>
         <dl class="result-stats" id="result-stats"></dl>
         <p class="result-record" id="result-record" hidden>Nieuw persoonlijk record</p>
         <div class="result-buttons">
@@ -68,15 +120,15 @@
       </section>
     </main>
 
-    <!-- Draai-je-telefoon-overlay -->
+    <!-- Draai-je-telefoon-overlay: dit spel speelt rechtop -->
     <div class="portrait-hint" id="portrait-hint" hidden>
       <svg viewBox="0 0 64 64" width="96" height="96" aria-hidden="true">
-        <rect x="20" y="6" width="24" height="44" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
-        <circle cx="32" cy="44" r="2" fill="currentColor" />
+        <rect x="8" y="20" width="48" height="26" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
+        <circle cx="50" cy="33" r="2" fill="currentColor" />
         <path d="M14 56 a22 22 0 0 0 36 -6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
         <path d="M48 44 l4 7 -8 1 z" fill="currentColor" />
       </svg>
-      <p>Draai je telefoon</p>
+      <p>Houd je telefoon rechtop</p>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

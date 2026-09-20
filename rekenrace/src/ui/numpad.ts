@@ -24,9 +24,13 @@ export interface Numpad {
   destroy(): void;
 }
 
-/** Cijfers in twee groepen van vijf: links 1 tot 5, rechts 6 tot 0. */
-const LEFT_KEYS = ['1', '2', '3', '4', '5'] as const;
-const RIGHT_KEYS = ['6', '7', '8', '9', '0'] as const;
+/**
+ * Cijfers in twee groepen van vijf: bovenste rij 1 tot 5, onderste 6 tot 0.
+ * Staand zijn dat twee rijen; C en OK staan eronder in de hoeken, want daar
+ * liggen je duimen als je de telefoon rechtop vasthoudt.
+ */
+const TOP_KEYS = ['1', '2', '3', '4', '5'] as const;
+const BOTTOM_KEYS = ['6', '7', '8', '9', '0'] as const;
 
 /** Meer cijfers dan dit heeft geen enkel antwoord in het spel. */
 const MAX_ENTRY = 3;
@@ -58,20 +62,15 @@ export function createNumpad(root: HTMLElement, options: NumpadOptions): Numpad 
     setEntry('');
   });
 
-  const leftGroup = document.createElement('div');
-  leftGroup.className = 'numpad-group';
-  const rightGroup = document.createElement('div');
-  rightGroup.className = 'numpad-group';
-
-  for (const digit of LEFT_KEYS) leftGroup.append(makeKey(digit, 'key', () => pressDigit(digit)));
-  for (const digit of RIGHT_KEYS) rightGroup.append(makeKey(digit, 'key', () => pressDigit(digit)));
-
   const okKey = makeKey('OK', 'key key-ok', () => {
     options.onKey?.();
     submit();
   });
 
-  root.append(clearKey, leftGroup, rightGroup, okKey);
+  // Plat in het raster: de rijen vormen de twee groepen van vijf.
+  for (const digit of TOP_KEYS) root.append(makeKey(digit, 'key key-digit', () => pressDigit(digit)));
+  for (const digit of BOTTOM_KEYS) root.append(makeKey(digit, 'key key-digit', () => pressDigit(digit)));
+  root.append(clearKey, okKey);
 
   function setEntry(value: string): void {
     entry = value;

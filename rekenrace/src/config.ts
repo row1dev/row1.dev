@@ -142,6 +142,15 @@ export const THEME = {
   trackBottom: '#4a3e2f',
   trackLine: '#f2e9d8',
   grass: '#4e8f5e',
+
+  /** Woestijn van bovenaf: zand met rotswanden langs de baan. */
+  sand: '#e8a03c',
+  sandDark: '#d18a2c',
+  canyon: '#6a4b35',
+  canyonEdge: '#8d6647',
+  garageFloor: '#5b5b66',
+  garageWall: '#3e3e47',
+  sign: '#2b4a8f',
   dog: '#3d7de0',
   dogDark: '#2a5ba8',
   dogBelly: '#bcd8ff',
@@ -204,8 +213,14 @@ export const TRACK = {
 
   /** Rekengarages staan op vaste afstanden; elke derde is een finishstation. */
   garageSpacing: 1600,
-  garageHalfWidth: 70,
-  garageDepth: 90,
+  /**
+   * De garage beslaat het grootste deel van de corridor. Smaller maakt hem te
+   * makkelijk om per ongeluk te missen, en je hébt hem nodig: je start met 30
+   * benzine en een hele baan kost er ongeveer honderd. Er blijft aan weerszijden
+   * ruimte over om er bewust omheen te rijden.
+   */
+  garageHalfWidth: 132,
+  garageDepth: 110,
   finishEvery: 3,
 
   /** Richtingspijlen op het wegdek. Puur navigatie, geen botsing. */

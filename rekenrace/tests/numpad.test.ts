@@ -27,16 +27,19 @@ describe('numpad', () => {
     expect(root.querySelectorAll('button')).toHaveLength(12);
   });
 
-  it('zet C en OK aan de buitenranden en de cijfers in twee groepen van vijf', () => {
+  it('zet de cijfers in twee rijen van vijf, met C en OK eronder', () => {
     const { root } = setup();
-    const children = [...root.children];
-    expect(children[0]?.textContent).toBe('C');
-    expect(children.at(-1)?.textContent).toBe('OK');
+    const digits = [...root.querySelectorAll('.key-digit')].map((key) => key.textContent);
+    // De twee rijen van het raster vormen de twee groepen van vijf.
+    expect(digits.slice(0, 5)).toEqual(['1', '2', '3', '4', '5']);
+    expect(digits.slice(5)).toEqual(['6', '7', '8', '9', '0']);
 
-    const groups = [...root.querySelectorAll('.numpad-group')];
-    expect(groups).toHaveLength(2);
-    expect([...groups[0]!.children].map((c) => c.textContent)).toEqual(['1', '2', '3', '4', '5']);
-    expect([...groups[1]!.children].map((c) => c.textContent)).toEqual(['6', '7', '8', '9', '0']);
+    // C en OK staan als laatste in de DOM en dus onderin het raster.
+    const children = [...root.children];
+    expect(children.at(-2)?.textContent).toBe('C');
+    expect(children.at(-1)?.textContent).toBe('OK');
+    expect(root.querySelector('.key-clear')).not.toBeNull();
+    expect(root.querySelector('.key-ok')).not.toBeNull();
   });
 
   it('bouwt een antwoord op en bevestigt met OK', () => {

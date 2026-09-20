@@ -1,6 +1,6 @@
 /*
- * Ontworpen voor een telefoon in landscape, referentie 844 bij 390 CSS-pixels.
- * De vier banden van het racescherm staan op 12 / 46 / 14 / 28 procent hoogte.
+ * Ontworpen voor een telefoon rechtop, referentie 390 bij 844 CSS-pixels.
+ * Het racescherm is een kolom: baan, meters, besturing.
  */
 
 :root {
@@ -30,14 +30,12 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  /* Vast in beeld: geen rubber-band-scroll op iOS. */
   position: fixed;
   inset: 0;
   overflow: hidden;
   background: var(--ink);
   color: var(--text);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  /* Geen tekstselectie of dubbeltik-zoom tijdens het spelen. */
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -53,7 +51,6 @@ button {
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
-  /* Raakvlakken minimaal 48 bij 48 pixels. */
   min-width: 48px;
   min-height: 48px;
 }
@@ -80,28 +77,39 @@ button {
 #screen-menu {
   align-items: center;
   justify-content: center;
-  gap: 4%;
-  padding: max(12px, var(--safe-top)) max(16px, var(--safe-right)) max(12px, var(--safe-bottom))
-    max(16px, var(--safe-left));
-  background: radial-gradient(circle at 50% 0%, #24406e 0%, var(--ink) 70%);
+  gap: 3vh;
+  padding: max(16px, var(--safe-top)) max(18px, var(--safe-right)) max(16px, var(--safe-bottom))
+    max(18px, var(--safe-left));
+  background: radial-gradient(circle at 50% 12%, #24406e 0%, var(--ink) 70%);
+  text-align: center;
 }
 
 .title {
   margin: 0;
-  font-size: clamp(22px, 5.5vh, 40px);
-  letter-spacing: 0.06em;
+  font-size: clamp(26px, 7vw, 40px);
+  line-height: 1.05;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  text-align: center;
-  color: var(--text);
-  text-shadow: 0 2px 0 var(--accent);
+}
+
+.title span {
+  color: var(--accent);
+}
+
+.tagline {
+  margin: 0;
+  max-width: 34ch;
+  font-size: clamp(13px, 3.4vw, 16px);
+  color: var(--text-dim);
+  line-height: 1.45;
 }
 
 .circuits {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   width: 100%;
-  max-width: 900px;
+  max-width: 460px;
 }
 
 .circuit {
@@ -109,9 +117,9 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 12px 8px;
-  min-height: 84px;
+  gap: 5px;
+  padding: 14px 8px;
+  min-height: 74px;
   border-radius: 14px;
   background: var(--panel);
   border: 2px solid var(--line);
@@ -124,23 +132,23 @@ button {
 }
 
 .circuit-name {
-  font-size: clamp(13px, 2.4vh, 18px);
+  font-size: clamp(14px, 3.8vw, 17px);
   font-weight: 700;
 }
 
 .circuit-record {
-  font-size: clamp(11px, 1.9vh, 14px);
+  font-size: clamp(11px, 3vw, 13px);
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
 
 .menu-footer {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
-  max-width: 900px;
+  max-width: 460px;
 }
 
 .field {
@@ -150,7 +158,7 @@ button {
 }
 
 .field-label {
-  font-size: clamp(12px, 2vh, 15px);
+  font-size: 14px;
   color: var(--text-dim);
 }
 
@@ -166,7 +174,7 @@ button {
   border-radius: 12px;
   background: var(--panel);
   border: 2px solid var(--line);
-  font-size: clamp(13px, 2.2vh, 16px);
+  font-size: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -181,41 +189,32 @@ button {
 
 /* ---------- Racescherm ---------- */
 
-/*
- * Het racescherm loopt zelf tot de schermrand door, zodat de achtergrond onder de
- * notch en de home-indicator doorloopt. De safe-area-insets zitten op de HUD en de
- * numpad, zodat alleen de raakvlakken uit de weg gaan.
- */
-
 .hud {
-  position: relative;
-  /* De hoogte van de notch komt bovenop de 12 procent, niet ervan af. */
-  flex: 0 0 calc(12% + var(--safe-top));
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-top: var(--safe-top);
-  padding-right: max(14px, var(--safe-right));
-  padding-bottom: 0;
-  padding-left: max(14px, var(--safe-left));
+  padding-top: max(6px, var(--safe-top));
+  padding-right: max(12px, var(--safe-right));
+  padding-bottom: 6px;
+  padding-left: max(12px, var(--safe-left));
   background: var(--panel);
   border-bottom: 2px solid var(--line);
-  font-size: clamp(11px, 2vh, 15px);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
 .hud-position {
   font-weight: 700;
-  min-width: 4.5em;
+  min-width: 3.6em;
 }
 
 .hud-progress {
   position: relative;
   flex: 1 1 auto;
-  height: 10px;
+  height: 8px;
   border-radius: 999px;
   background: var(--panel-soft);
-  overflow: visible;
 }
 
 .hud-progress-fill {
@@ -234,70 +233,27 @@ button {
 .hud-marker {
   position: absolute;
   top: 50%;
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
   border-radius: 50%;
   border: 2px solid var(--panel);
 }
 
 .hud-marker.player {
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
-  background: var(--text);
+  width: 13px;
+  height: 13px;
+  margin: -6.5px 0 0 -6.5px;
 }
 
-.hud-distance,
 .hud-time {
-  min-width: 4.5em;
+  min-width: 4em;
   text-align: right;
   color: var(--text-dim);
 }
 
-.hud-streak {
-  min-width: 6em;
-  text-align: right;
-  font-weight: 700;
-}
-
-.hud-streak.hot {
-  color: var(--turbo);
-}
-
-.hud-mute {
-  flex: 0 0 auto;
-  min-width: 48px;
-  min-height: 48px;
-  padding: 0;
-  font-size: 18px;
-  line-height: 1;
-  opacity: 0.85;
-}
-
-.hud-turbo {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 2px;
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255, 207, 61, 0.2);
-}
-
-.hud-turbo[hidden] {
-  display: none;
-}
-
-.hud-turbo-fill {
-  height: 100%;
-  width: 100%;
-  border-radius: 999px;
-  background: var(--turbo);
-}
-
 .track {
-  flex: 1 1 46%;
+  flex: 1 1 auto;
   position: relative;
   min-height: 0;
 }
@@ -306,39 +262,333 @@ button {
   display: block;
   width: 100%;
   height: 100%;
-  /* Het canvas reageert niet op aanraking: geen scroll, geen zoom. */
   touch-action: none;
 }
 
-.question {
-  flex: 0 0 14%;
-  padding-right: max(12px, var(--safe-right));
-  padding-left: max(12px, var(--safe-left));
+/* Startsein: drie rode lampen en dan groen. */
+.lights {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(14, 23, 38, 0.82);
+  border: 2px solid var(--line);
+}
+
+.lights[hidden] {
+  display: none;
+}
+
+.lamp {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3a1d22;
+  border: 2px solid #55323a;
+}
+
+.lamp.on {
+  background: var(--wrong);
+  box-shadow: 0 0 12px rgba(255, 90, 90, 0.8);
+}
+
+.lamp.go {
+  background: #1e3a28;
+  border-color: #2f5c3f;
+}
+
+.lamp.go.on {
+  background: var(--correct);
+  box-shadow: 0 0 14px rgba(61, 220, 132, 0.9);
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(14, 23, 38, 0.88);
+  border: 2px solid var(--correct);
+  color: var(--correct);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.toast[hidden] {
+  display: none;
+}
+
+/* ---------- Meters ---------- */
+
+.gauges {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px max(12px, var(--safe-right)) 8px max(12px, var(--safe-left));
+  background: var(--panel);
+  border-top: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
+}
+
+.gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gauge.wide {
+  flex: 1 1 auto;
+}
+
+.gauge-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.gauge-value {
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.4em;
+}
+
+.bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  transition: width 120ms linear;
+}
+
+.bar-fill.fuel {
+  background: var(--turbo);
+}
+
+.bar-fill.condition {
+  background: var(--correct);
+}
+
+.bar-fill.low {
+  background: var(--wrong);
+}
+
+/* ---------- Besturing ---------- */
+
+.controls {
+  flex: 0 0 28%;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px max(10px, var(--safe-right)) max(8px, var(--safe-bottom)) max(10px, var(--safe-left));
+  background: var(--ink);
+}
+
+.pad {
+  flex: 0 0 26%;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  font-size: 30px;
+  line-height: 1;
+  transition: transform 70ms ease, background-color 70ms ease;
+}
+
+.pad.held,
+.pad:active {
+  transform: scale(0.96);
+  background: var(--accent);
+}
+
+.actions {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+}
+
+.action {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 6px;
+  border-radius: 14px;
   background: var(--panel);
+  border: 2px solid var(--line);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.action b {
+  font-size: 15px;
+  color: var(--text-dim);
+}
+
+.action.brake {
+  grid-column: 1 / -1;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  background: #3a2230;
+  border-color: #5c3247;
+}
+
+.action.rocket.held,
+.action.turbo.held,
+.action.brake.held,
+.action:active {
+  transform: scale(0.96);
+  background: var(--panel-soft);
+}
+
+.action.empty {
+  opacity: 0.4;
+}
+
+.controls.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ---------- Rekengarage ---------- */
+
+#screen-garage {
+  background: linear-gradient(180deg, #1b2b47 0%, var(--ink) 55%);
+}
+
+.garage-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: max(8px, var(--safe-top));
+  padding-right: max(12px, var(--safe-right));
+  padding-bottom: 8px;
+  padding-left: max(12px, var(--safe-left));
+  background: var(--panel);
+  border-bottom: 2px solid var(--line);
+}
+
+.garage-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.garage-kind {
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.leave {
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.garage-top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px max(12px, var(--safe-right)) 12px max(12px, var(--safe-left));
+}
+
+.prize {
+  flex: 0 0 38%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #14203a;
+}
+
+.prize-icon {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.prize-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.garage-stats {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  gap: 2px 10px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.garage-stats dt {
+  color: var(--text-dim);
+}
+
+.garage-stats dd {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.garage-stats dd.low {
+  color: var(--wrong);
+}
+
+.question {
+  flex: 1 1 auto;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 max(12px, var(--safe-right)) 0 max(12px, var(--safe-left));
+  background: #060b14;
   border-top: 2px solid var(--line);
   border-bottom: 2px solid var(--line);
 }
 
 .question-text {
   /* Minimaal 32 px, zoals het ontwerp voorschrijft. */
-  font-size: max(32px, min(6.5vh, 46px));
+  font-size: max(32px, min(9vw, 44px));
   font-weight: 700;
-  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 .answer-box {
-  min-width: 3.2em;
-  min-height: 1.5em;
-  padding: 2px 12px;
+  min-width: 2.6em;
+  min-height: 1.4em;
+  padding: 2px 10px;
   border-radius: 12px;
   background: var(--ink);
   border: 3px solid var(--line);
-  font-size: max(32px, min(6.5vh, 46px));
+  font-size: max(32px, min(9vw, 44px));
   font-weight: 700;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -375,32 +625,22 @@ button {
 /* ---------- Numpad ---------- */
 
 .numpad {
-  /* Idem voor de home-indicator onderaan. */
-  flex: 0 0 calc(28% + var(--safe-bottom));
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  padding-top: 6px;
-  padding-right: max(8px, var(--safe-right));
-  padding-bottom: max(6px, var(--safe-bottom));
-  padding-left: max(8px, var(--safe-left));
+  flex: 0 0 40%;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 7px;
+  padding: 8px max(10px, var(--safe-right)) max(8px, var(--safe-bottom)) max(10px, var(--safe-left));
   background: var(--ink);
 }
 
-.numpad-group {
-  display: flex;
-  flex: 1 1 auto;
-  gap: 6px;
-}
-
 .key {
-  flex: 1 1 0;
   min-width: 48px;
   min-height: 48px;
   border-radius: 12px;
   background: var(--panel);
   border: 2px solid var(--line);
-  font-size: clamp(18px, 4.2vh, 28px);
+  font-size: clamp(18px, 5.5vw, 26px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   transition: transform 70ms ease, background-color 70ms ease;
@@ -412,19 +652,19 @@ button {
   background: var(--panel-soft);
 }
 
-/* C en OK aan de buitenranden: dat zijn de duimposities in landscape. */
-.key-clear,
-.key-ok {
-  flex: 0 0 15%;
-  font-size: clamp(15px, 3vh, 22px);
-}
-
+/* C en OK in de onderste hoeken: daar liggen je duimen staand. */
 .key-clear {
+  grid-column: 1 / span 2;
+  grid-row: 3;
+  font-size: 20px;
   background: #3a2230;
   border-color: #5c3247;
 }
 
 .key-ok {
+  grid-column: 4 / span 2;
+  grid-row: 3;
+  font-size: 20px;
   background: #1d4a32;
   border-color: #2f7a52;
 }
@@ -439,25 +679,69 @@ button {
 #screen-result {
   align-items: center;
   justify-content: center;
-  gap: 3%;
-  padding: max(12px, var(--safe-top)) max(16px, var(--safe-right)) max(12px, var(--safe-bottom))
-    max(16px, var(--safe-left));
-  background: radial-gradient(circle at 50% 0%, #24406e 0%, var(--ink) 70%);
+  gap: 2.4vh;
+  padding: max(16px, var(--safe-top)) max(18px, var(--safe-right)) max(16px, var(--safe-bottom))
+    max(18px, var(--safe-left));
+  background: radial-gradient(circle at 50% 10%, #24406e 0%, var(--ink) 70%);
   text-align: center;
+  overflow-y: auto;
 }
 
 .result-heading {
   margin: 0;
-  font-size: clamp(20px, 5vh, 34px);
+  font-size: clamp(20px, 6vw, 30px);
+  font-variant-numeric: tabular-nums;
+}
+
+.podium {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.podium-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 14px;
+}
+
+.podium-row.me {
+  border: 2px solid var(--accent);
+  background: var(--panel-soft);
+}
+
+.podium-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.podium-name {
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.podium-note {
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
 
 .result-stats {
   display: grid;
   grid-template-columns: auto auto;
-  gap: 4px 20px;
+  gap: 3px 16px;
   margin: 0;
-  font-size: clamp(12px, 2.4vh, 17px);
+  font-size: 13px;
 }
 
 .result-stats dt {
@@ -480,7 +764,7 @@ button {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: clamp(12px, 2.4vh, 16px);
+  font-size: 12px;
 }
 
 .result-record[hidden] {
@@ -489,15 +773,15 @@ button {
 
 .result-buttons {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .big-button {
-  padding: 0 28px;
-  min-height: 56px;
+  padding: 0 22px;
+  min-height: 52px;
   border-radius: 14px;
   background: var(--accent);
-  font-size: clamp(14px, 2.8vh, 19px);
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -506,7 +790,7 @@ button {
   border: 2px solid var(--line);
 }
 
-/* ---------- Draai-je-telefoon ---------- */
+/* ---------- Houd je telefoon rechtop ---------- */
 
 .portrait-hint {
   position: fixed;
