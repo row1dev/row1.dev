@@ -3,7 +3,7 @@
  * De renderlaag leest alleen uit de engine en schrijft er nooit in.
  */
 
-import { OPPONENT_COLORS, PARALLAX, RACE, THEME, TICK_HZ, UI } from '../config.ts';
+import { OPPONENT_COLORS, PARALLAX, RACE, STREAK, THEME, TICK_HZ, UI } from '../config.ts';
 import type { RaceView } from '../engine/race.ts';
 import { BLUE_DOG, drawDust, drawRunner, opponentSkin, type RunnerSkin } from './sprites.ts';
 
@@ -238,22 +238,33 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
     // De loopcyclus versnelt met de snelheid, zodat het rennen bij het tempo past.
     runPhase += (dt / 1000) * (4 + view.speed * 1.6);
 
+    const turboActive = view.turboTicksLeft > 0;
+    // Hoe lang de turbo al loopt; de schudding duurt maar de eerste UI.shakeMs.
+    const turboElapsed = turboActive ? (STREAK.ticks - view.turboTicksLeft) / TICK_HZ : Infinity;
+    const shakeFade = clamp01(1 - turboElapsed / (UI.shakeMs / 1000));
+
     ctx.save();
-    if (view.turboTicksLeft > 0) {
-      // Schermschudding tijdens de turbo.
-      const remaining = view.turboTicksLeft / TICK_HZ;
-      const fade = clamp01(remaining / (UI.shakeMs / 1000));
-      ctx.translate(
-        (Math.random() - 0.5) * 2 * UI.shakePx * fade,
-        (Math.random() - 0.5) * 2 * UI.shakePx * fade,
-      );
+    if (shakeFade > 0 && !reducedMotion()) {
+      const amount = UI.shakePx * shakeFade;
+      ctx.translate((Math.random() - 0.5) * 2 * amount, (Math.random() - 0.5) * 2 * amount);
     }
 
     const offset = view.player.distance * PARALLAX.trackScale;
+
+    // Achtergrond apart, zodat de turbo hem kan vervormen zonder de sprites te raken.
+    ctx.save();
+    if (turboActive) {
+      const warp = clamp01(view.turboTicksLeft / STREAK.ticks);
+      ctx.translate(width / 2, trackTop());
+      ctx.scale(1 + 0.06 * warp, 1 - 0.04 * warp);
+      ctx.translate(-width / 2, -trackTop());
+    }
     drawSky();
     drawClouds(offset);
     drawHills(FAR_HILLS, offset, PARALLAX.hillsFar, THEME.hillsFar, trackTop() + 2);
     drawHills(NEAR_HILLS, offset, PARALLAX.hillsNear, THEME.hillsNear, trackTop() + 6);
+    ctx.restore();
+
     drawTrack(offset);
     drawFinish(view);
     drawRacers(view);
@@ -266,4 +277,9 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
 
 function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value;
+}
+
+/** Respecteert de systeeminstelling voor minder beweging. */
+function reducedMotion(): boolean {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 }

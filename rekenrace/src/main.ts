@@ -12,6 +12,7 @@ import { createHud, createQuestionPanel } from './ui/hud.ts';
 import { createNumpad, type Numpad } from './ui/numpad.ts';
 import { createMenu, createPortraitHint, createResultScreen, createScreens } from './ui/screens.ts';
 import { createRecordStore, type Settings } from './storage/records.ts';
+import { createSfx } from './audio/sfx.ts';
 
 function need<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -22,6 +23,8 @@ function need<T extends Element>(selector: string): T {
 function boot(): void {
   const store = createRecordStore();
   let settings: Settings = store.settings();
+  const sfx = createSfx();
+  sfx.setMuted(settings.muted);
 
   const screens = createScreens();
   const hud = createHud(need<HTMLElement>('#hud'));
@@ -40,6 +43,7 @@ function boot(): void {
   const numpad: Numpad = createNumpad(need<HTMLElement>('#numpad'), {
     autoSubmit: settings.autoSubmit,
     onChange: () => refreshQuestion(),
+    onKey: () => sfx.key(),
     onSubmit: (value) => submitAnswer(value),
   });
 
@@ -65,6 +69,7 @@ function boot(): void {
 
   function toggleMute(): void {
     settings = { ...settings, muted: !settings.muted };
+    sfx.setMuted(settings.muted);
     store.saveSettings(settings);
     renderMenu();
   }
@@ -102,8 +107,15 @@ function boot(): void {
     if (race === null) return;
     const outcome = race.answer(value);
     if (outcome === null) return;
-    if (outcome.correct) panel.flashCorrect();
-    else panel.flashWrong();
+    if (outcome.correct) {
+      panel.flashCorrect();
+      // De turbo klinkt over het goed-geluid heen, niet in plaats daarvan.
+      sfx.correct();
+      if (outcome.turbo) sfx.turbo();
+    } else {
+      panel.flashWrong();
+      sfx.wrong();
+    }
     refreshQuestion();
   }
 
@@ -123,6 +135,7 @@ function boot(): void {
         date: new Date().toISOString().slice(0, 10),
       });
 
+    sfx.finish();
     resultScreen.render(result, circuit, isRecord, previous);
     screens.show('result');
   }
@@ -196,6 +209,11 @@ function boot(): void {
   window.addEventListener('focus', syncPause);
 
   need<HTMLButtonElement>('#hud-mute').addEventListener('click', () => toggleMute());
+
+  // De AudioContext mag pas bij het eerste gebaar starten; daarna blijft hij staan.
+  const unlockAudio = (): void => sfx.unlock();
+  document.addEventListener('pointerdown', unlockAudio, { capture: true });
+  document.addEventListener('keydown', unlockAudio, { capture: true });
 
   // Geen dubbeltik-zoom, geen pinch-zoom en geen contextmenu tijdens het spelen.
   document.addEventListener('gesturestart', (event) => event.preventDefault());

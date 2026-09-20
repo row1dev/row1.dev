@@ -105,6 +105,22 @@ export const UI = {
   autoSubmit: true,
 } as const;
 
+/**
+ * Geluid wordt volledig gegenereerd met WebAudio: geen audiobestanden en geen
+ * externe bibliotheken. Frequenties in hertz, duur in seconden.
+ */
+export const AUDIO = {
+  /** Algemeen volume; alles eronder schaalt hiermee mee. */
+  master: 0.22,
+  key: { freq: 660, duration: 0.05, gain: 0.25 },
+  correct: { from: 523.25, to: 783.99, duration: 0.16, gain: 0.7 },
+  wrong: { from: 233.08, to: 110, duration: 0.3, gain: 0.6 },
+  /** Oplopend drieklankje bij turbo. */
+  turbo: { steps: [523.25, 659.25, 783.99, 1046.5], step: 0.07, gain: 0.55 },
+  /** Kort fanfare-motief aan de finish. */
+  finish: { steps: [523.25, 659.25, 783.99, 1046.5, 1046.5], step: 0.13, gain: 0.6 },
+} as const;
+
 export const STORAGE = {
   /** Versienummer zit in de key, zodat een formaatwijziging oude records niet stukmaakt. */
   recordsKey: 'rekenrace.records.v1',
