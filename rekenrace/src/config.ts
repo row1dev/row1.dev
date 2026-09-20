@@ -162,3 +162,115 @@ export const PARALLAX = {
   /** Hoeveel de baan zelf meeschuift per baan-eenheid, in pixels. */
   trackScale: 1.4,
 } as const;
+
+/* ===========================================================================
+ * Vanaf hier het nieuwe spel: een top-down racer waarin de sommen bij de
+ * Rekengarage gespeeld worden. Het oude model hierboven (snelheid volgt uit
+ * reactietijd) verdwijnt zodra de nieuwe renderlaag klaar is.
+ * ======================================================================== */
+
+/**
+ * De baan is een corridor: een slingerende middellijn met een halve breedte
+ * eromheen. Afstanden in baan-eenheden, waarbij y de rijrichting is.
+ */
+export const TRACK = {
+  length: 12000,
+
+  /**
+   * Breedte van de corridor: basis plus een rustige variatie. Ruim genoeg dat er
+   * naast een steen in het midden nog een rijlijn overblijft; met een smallere
+   * baan drukt `obstacleWallMargin` alle stenen juist naar het midden, precies
+   * op de lijn waar je rijdt.
+   */
+  halfWidthBase: 210,
+  halfWidthAmp: 30,
+  halfWidthPeriod: 900,
+
+  /**
+   * Twee sinussen over elkaar maken een baan die niet voorspelbaar slingert.
+   * De amplitudes en periodes zijn zo gekozen dat de middellijn nergens steiler
+   * loopt dan ongeveer 33 graden, en dat de bocht die hij vraagt ruim onder de
+   * draaisnelheid van een kart op topsnelheid blijft. Beide grenzen staan in de
+   * tests; draai je hieraan, dan vallen die om.
+   */
+  curveAmp1: 100,
+  curvePeriod1: 1600,
+  curveAmp2: 26,
+  curvePeriod2: 620,
+
+  /** Rustige stukken aan het begin en het eind. */
+  startClear: 400,
+  finishClear: 300,
+
+  /** Rekengarages staan op vaste afstanden; elke derde is een finishstation. */
+  garageSpacing: 1600,
+  garageHalfWidth: 70,
+  garageDepth: 90,
+  finishEvery: 3,
+
+  /** Richtingspijlen op het wegdek. Puur navigatie, geen botsing. */
+  markerSpacing: 240,
+
+  /** Stenen blokkeren, cactussen remmen alleen af. */
+  rockSpacing: 190,
+  rockRadiusMin: 22,
+  rockRadiusMax: 40,
+  cactusRadius: 15,
+  cactusClusterSpacing: 560,
+  cactusClusterMin: 5,
+  cactusClusterMax: 13,
+
+  /**
+   * Stenen blijven minstens zo ver van de rand dat er een kart langs past.
+   * Anders klemt een kart zich vast tussen de steen en de muur, die elkaars
+   * correctie elke tick ongedaan maken.
+   */
+  obstacleWallMargin: 52,
+
+  /** Obstakels worden per y-bak geïndexeerd, zodat een tick niet alles naloopt. */
+  binSize: 200,
+} as const;
+
+/** Rijgedrag van een kart. Snelheden in eenheden per seconde. */
+export const KART = {
+  maxSpeed: 220,
+  /** Te voet, na pech of zonder benzine. */
+  footSpeed: 70,
+  turboSpeed: 330,
+  accel: 190,
+  brakeAccel: 330,
+
+  /** Bochtsnelheid in radialen per seconde, en de snelheid waarbij die vol is. */
+  steerRate: 2.4,
+  fullSteerSpeed: 60,
+
+  turboTicks: 90,
+
+  maxFuel: 99,
+  startFuel: 30,
+  /** Hoeveel baan-eenheden je aflegt op één eenheid benzine. */
+  unitsPerFuel: 120,
+
+  maxCondition: 100,
+  startCondition: 100,
+  rocketDamage: 25,
+  collisionDamage: 4,
+  wallDamage: 2,
+  /** Beneden deze snelheid kost een aanraking geen schade meer. */
+  damageSpeed: 50,
+
+  /**
+   * Bij een aanraking schuif je langs het oppervlak in plaats van erop te
+   * stuiteren: de snelheid loodrecht op de steen of de muur valt weg, de rest
+   * blijft op deze factor na staan. Zonder dat glijden ramt een kart met
+   * automatisch gas dezelfde steen eindeloos opnieuw en komt hij nooit los.
+   */
+  slideKeep: 0.82,
+  wallSlideKeep: 0.9,
+  /**
+   * Door een cactusveld ploeg je op dit deel van je topsnelheid. Dit is een
+   * plafond, geen factor per tick: dat laatste zou je snelheid binnen een halve
+   * seconde tot nul terugbrengen en je in het veld laten stilvallen.
+   */
+  cactusSpeedKeep: 0.45,
+} as const;
