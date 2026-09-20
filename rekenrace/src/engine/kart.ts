@@ -27,6 +27,8 @@ export interface Kart {
   readonly y: number;
   readonly heading: number;
   readonly speed: number;
+  /** Handicap op de topsnelheid; 1 is een kart op volle kracht. */
+  readonly speedFactor: number;
 
   readonly fuel: number;
   readonly condition: number;
@@ -55,6 +57,7 @@ export interface KartOptions {
   readonly condition?: number;
   readonly rockets?: number;
   readonly boosts?: number;
+  readonly speedFactor?: number;
 }
 
 export function createKart(options: KartOptions = {}): Kart {
@@ -65,6 +68,7 @@ export function createKart(options: KartOptions = {}): Kart {
     y: options.y ?? 0,
     heading: options.heading ?? 0,
     speed: options.speed ?? 0,
+    speedFactor: options.speedFactor ?? 1,
     fuel,
     condition,
     rockets: options.rockets ?? 0,
@@ -81,8 +85,8 @@ export function createKart(options: KartOptions = {}): Kart {
 /** Topsnelheid nu, gegeven pech, turbo en een lege tank. */
 export function topSpeedOf(kart: Kart): number {
   if (!kart.hasKart || kart.fuel <= 0) return KART.footSpeed;
-  if (kart.turboTicksLeft > 0) return KART.turboSpeed;
-  return KART.maxSpeed;
+  if (kart.turboTicksLeft > 0) return KART.turboSpeed * kart.speedFactor;
+  return KART.maxSpeed * kart.speedFactor;
 }
 
 /** Eén simulatiestap van 1 / 60 seconde. */
@@ -102,7 +106,9 @@ export function stepKart(kart: Kart, input: KartInput, track: Track): Kart {
   }
 
   const onFoot = !hasKart || fuel <= 0;
-  const topSpeed = onFoot ? KART.footSpeed : turboTicksLeft > 0 ? KART.turboSpeed : KART.maxSpeed;
+  const topSpeed = onFoot
+    ? KART.footSpeed
+    : (turboTicksLeft > 0 ? KART.turboSpeed : KART.maxSpeed) * kart.speedFactor;
 
   // Gas gaat vanzelf: de kart trekt op naar zijn topsnelheid tenzij je remt.
   if (input.brake) speed = Math.max(0, speed - KART.brakeAccel * dt);
@@ -207,6 +213,7 @@ export function stepKart(kart: Kart, input: KartInput, track: Track): Kart {
     y,
     heading,
     speed: Math.max(0, speed),
+    speedFactor: kart.speedFactor,
     fuel: clamp(fuel, 0, KART.maxFuel),
     condition,
     rockets: kart.rockets,

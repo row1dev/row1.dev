@@ -253,9 +253,14 @@ export const KART = {
 
   maxCondition: 100,
   startCondition: 100,
+  /**
+   * Raketten zijn wat je je kart kost: vier treffers en je loopt. Stenen en
+   * muren kosten vooral vaart en maar een beetje conditie — anders sloopt een
+   * rijder zichzelf in één race op obstakels, zonder dat er iemand op hem schiet.
+   */
   rocketDamage: 25,
-  collisionDamage: 4,
-  wallDamage: 2,
+  collisionDamage: 1.5,
+  wallDamage: 1,
   /** Beneden deze snelheid kost een aanraking geen schade meer. */
   damageSpeed: 50,
 
@@ -299,4 +304,35 @@ export const GARAGE = {
 
   /** Hoe vaak elk item aan de beurt komt als je nergens krap in zit. */
   weights: { fuel: 3, rocket: 3, boost: 2 } as const,
+} as const;
+
+/**
+ * De tegenstanders. Ze rijden de baan door zonder te stoppen: de garage is jouw
+ * afweging, niet die van hen. Hun tempo ligt daarom onder dat van een kart op
+ * volle snelheid, zodat je de tijd die je binnen verliest kunt terugrijden.
+ *
+ * Namen alliteren, net als in het ontwerp, maar zijn van onszelf.
+ */
+export const RIVALS = {
+  profiles: [
+    { name: 'Bram de Bever', speedFactor: 0.8, lookahead: 260, skill: 0.7, rocketEverySeconds: 15 },
+    { name: 'Kaat de Kraai', speedFactor: 0.86, lookahead: 300, skill: 0.85, rocketEverySeconds: 12 },
+    { name: 'Sil de Slang', speedFactor: 0.92, lookahead: 340, skill: 0.95, rocketEverySeconds: 9 },
+  ],
+
+  /** Kleiner verschil dan dit wordt niet bijgestuurd; anders slingert de kart. */
+  steerDeadzone: 0.04,
+  /** Extra ruimte die een tegenstander om een steen heen houdt. */
+  avoidMargin: 30,
+
+  /** Schietbereik en hoe recht de speler voor de loop moet liggen. */
+  fireRange: 700,
+  fireCone: 0.3,
+} as const;
+
+/** Mini-raketten. Ze vliegen rechtuit; wie geraakt wordt verliest conditie. */
+export const ROCKET = {
+  speed: 430,
+  lifeTicks: 150,
+  radius: 22,
 } as const;
