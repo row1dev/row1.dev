@@ -29,9 +29,11 @@ een pad van deze site:
 |---|---|---|
 | willem | `public/willem/` | [row1.dev/willem/privacy/](https://row1.dev/willem/privacy/) |
 | rowslow | `public/rowslow/` | [row1.dev/rowslow/](https://row1.dev/rowslow/) |
+| rekenrace | `public/rekenrace/` | [row1.dev/rekenrace/](https://row1.dev/rekenrace/) |
 
 Links binnen zo'n map zijn absoluut vanaf de root (`/rowslow/privacy/`). De broncode van
-de apps zelf staat niet hier maar in een eigen repository.
+de apps zelf staat meestal niet hier maar in een eigen repository. `public/rekenrace/`
+is de uitzondering: dat is een build-uitvoer, zie hieronder.
 
 ## Apps in deze repo
 
@@ -51,12 +53,17 @@ snelheid bepaald wordt door hoe snel je rekensommen oplost. Vite en TypeScript, 
 backend, offline speelbaar als PWA. Zie [`rekenrace/README.md`](rekenrace/README.md).
 
 Anders dan champagne krijgt dit geen eigen deploy: de build is een statische map die
-onder `public/rekenrace/` gaat en dus meelift op de Cloudflare-deploy van `public/`.
+onder `public/rekenrace/` staat en dus meelift op de Cloudflare-deploy van `public/`.
+Die map is **build-uitvoer** en wordt meegecommit, want de Workers-deploy heeft geen
+build-stap. Na een wijziging in `rekenrace/` moet hij dus opnieuw gevuld worden:
 
 ```bash
 cd rekenrace && npm install && npm run build
-cp -r dist/. ../public/rekenrace/
+rm -rf ../public/rekenrace/* && cp -r dist/. ../public/rekenrace/
 ```
+
+Bewerk niets rechtstreeks in `public/rekenrace/`; dat wordt bij de volgende build
+overschreven.
 
 ## Een project toevoegen
 
