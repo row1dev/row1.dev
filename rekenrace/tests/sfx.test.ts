@@ -81,12 +81,20 @@ describe('sfx', () => {
     sfx.wrong();
     expect(fake.started).toHaveLength(3);
 
-    // Turbo en finish zijn arpeggio's van meerdere tonen.
+    sfx.launch();
+    sfx.hit();
+    sfx.bump();
+    expect(fake.started).toHaveLength(6);
+
+    // Turbo, finish en wrak zijn arpeggio's van meerdere tonen.
     sfx.turbo();
-    expect(fake.started).toHaveLength(3 + AUDIO.turbo.steps.length);
+    expect(fake.started).toHaveLength(6 + AUDIO.turbo.steps.length);
 
     sfx.finish();
-    expect(fake.started).toHaveLength(3 + AUDIO.turbo.steps.length + AUDIO.finish.steps.length);
+    sfx.wreck();
+    expect(fake.started).toHaveLength(
+      6 + AUDIO.turbo.steps.length + AUDIO.finish.steps.length + AUDIO.wreck.steps.length,
+    );
   });
 
   it('speelt niets als het geluid uitstaat', () => {
@@ -99,6 +107,9 @@ describe('sfx', () => {
     sfx.key();
     sfx.correct();
     sfx.turbo();
+    sfx.launch();
+    sfx.hit();
+    sfx.wreck();
     expect(fake.started).toHaveLength(0);
 
     sfx.setMuted(false);
@@ -117,6 +128,10 @@ describe('sfx', () => {
       sfx.wrong();
       sfx.turbo();
       sfx.finish();
+      sfx.launch();
+      sfx.hit();
+      sfx.bump();
+      sfx.wreck();
       sfx.setMuted(true);
     }).not.toThrow();
   });

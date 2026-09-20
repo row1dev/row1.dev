@@ -39,7 +39,7 @@
   },
   {
     "name": "rekenrace",
-    "description": "Blue Dog Rekenrace: racespel voor de telefoon waarin je snelheid bepaald wordt door hoe snel en goed je rekensommen oplost. Vite en TypeScript, geen backend, offline speelbaar vanaf het homescreen.",
+    "description": "Blue Dog Rekenrace: top-down racespel voor de telefoon waarin je bij de Rekengarage sommen maakt om aan benzine, raketten en turbo te komen. Vite en TypeScript, geen backend, offline speelbaar.",
     "status": "wip",
     "tags": [
       "typescript",

@@ -48,9 +48,10 @@ Supabase-schema.
 
 ### rekenrace
 
-[`rekenrace/`](rekenrace/) is Blue Dog Rekenrace: een racespel op de telefoon waarin je
-snelheid bepaald wordt door hoe snel je rekensommen oplost. Vite en TypeScript, geen
-backend, offline speelbaar als PWA. Zie [`rekenrace/README.md`](rekenrace/README.md).
+[`rekenrace/`](rekenrace/) is Blue Dog Rekenrace: een top-down racespel op de telefoon
+waarin je bij de Rekengarage sommen maakt om aan benzine, raketten en turbo te komen.
+Vite en TypeScript, geen backend, offline speelbaar als PWA. Zie
+[`rekenrace/README.md`](rekenrace/README.md).
 
 Anders dan champagne krijgt dit geen eigen deploy: de build is een statische map die
 onder `public/rekenrace/` staat en dus meelift op de Cloudflare-deploy van `public/`.

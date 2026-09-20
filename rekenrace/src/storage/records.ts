@@ -4,7 +4,7 @@
  * niet stukmaakt maar gewoon naast zich neerlegt.
  */
 
-import { OPPONENTS, STORAGE, UI } from '../config.ts';
+import { RIVALS, STORAGE, UI } from '../config.ts';
 import { CIRCUITS, type Circuit } from '../engine/questions.ts';
 
 export interface RecordEntry {
@@ -18,13 +18,14 @@ export interface RecordEntry {
 export type Records = Partial<Record<Circuit, RecordEntry>>;
 
 export interface Settings {
-  readonly opponentCount: number;
+  /** Aantal tegenstanders, 1 tot en met het aantal profielen. */
+  readonly rivalCount: number;
   readonly muted: boolean;
   readonly autoSubmit: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  opponentCount: 2,
+  rivalCount: 2,
   muted: false,
   autoSubmit: UI.autoSubmit,
 };
@@ -101,11 +102,11 @@ function parseSettings(raw: string | null): Settings {
     if (typeof parsed !== 'object' || parsed === null) return DEFAULT_SETTINGS;
     const value = parsed as Partial<Settings>;
     const count =
-      typeof value.opponentCount === 'number'
-        ? Math.min(OPPONENTS.maxCount, Math.max(OPPONENTS.minCount, Math.round(value.opponentCount)))
-        : DEFAULT_SETTINGS.opponentCount;
+      typeof value.rivalCount === 'number'
+        ? Math.min(RIVALS.profiles.length, Math.max(1, Math.round(value.rivalCount)))
+        : DEFAULT_SETTINGS.rivalCount;
     return {
-      opponentCount: count,
+      rivalCount: count,
       muted: typeof value.muted === 'boolean' ? value.muted : DEFAULT_SETTINGS.muted,
       autoSubmit: typeof value.autoSubmit === 'boolean' ? value.autoSubmit : DEFAULT_SETTINGS.autoSubmit,
     };

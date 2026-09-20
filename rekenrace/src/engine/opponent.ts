@@ -20,6 +20,8 @@ export interface RivalProfile {
   /** 0 tot 1: hoe goed deze rijder stenen ziet aankomen. */
   readonly skill: number;
   readonly rocketEveryTicks: number;
+  /** Hoe lang hij bij elke Rekengarage stilstaat om bij te tanken. */
+  readonly garagePauseTicks: number;
 }
 
 /** De profielen voor een veld van `count` tegenstanders, sterkste laatst. */
@@ -32,6 +34,7 @@ export function rivalProfiles(count: number): RivalProfile[] {
     lookahead: profile.lookahead,
     skill: profile.skill,
     rocketEveryTicks: Math.round(profile.rocketEverySeconds * TICK_HZ),
+    garagePauseTicks: Math.round(profile.garagePauseSeconds * TICK_HZ),
   }));
 }
 
@@ -100,8 +103,8 @@ export function driveRival(kart: Kart, track: Track, profile: RivalProfile): Kar
 }
 
 /**
- * Eén tick voor een tegenstander. Houdt de tank vol: ze doen niet mee aan de
- * benzine-economie, want ze stoppen nooit om te tanken.
+ * Eén tick voor een tegenstander. Houdt de tank vol: ze tanken bij de garage bij
+ * zonder te rekenen, dus ze doen niet mee aan de benzine-economie zelf.
  */
 export function stepRival(kart: Kart, track: Track, profile: RivalProfile): Kart {
   const next = stepKart(kart, driveRival(kart, track, profile), track);

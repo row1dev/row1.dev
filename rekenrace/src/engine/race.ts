@@ -102,6 +102,10 @@ interface RivalState {
   readonly profile: RivalProfile;
   kart: Kart;
   finishTick: number | null;
+  /** Ticks die hij nog stilstaat bij een garage. */
+  pauseTicksLeft: number;
+  /** De eerstvolgende garage waar hij nog moet stoppen. */
+  nextGarage: number;
 }
 
 export function createRace(options: RaceOptions): Race {
@@ -135,6 +139,8 @@ export function createRace(options: RaceOptions): Race {
       rockets: Number.MAX_SAFE_INTEGER,
     }),
     finishTick: null,
+    pauseTicksLeft: 0,
+    nextGarage: 0,
   }));
 
   let rockets: Rocket[] = [];
@@ -210,6 +216,23 @@ export function createRace(options: RaceOptions): Race {
   const advanceWorld = (): void => {
     for (const rival of rivals) {
       if (rival.finishTick !== null) continue;
+
+      // Staat hij te tanken, dan staat hij ook echt stil.
+      if (rival.pauseTicksLeft > 0) {
+        rival.pauseTicksLeft -= 1;
+        rival.kart = { ...rival.kart, speed: 0 };
+        continue;
+      }
+
+      // Bij elke garage stopt hij een vaste tijd om bij te tanken.
+      const stop = track.garages[rival.nextGarage];
+      if (stop !== undefined && rival.kart.y >= stop.y) {
+        rival.nextGarage += 1;
+        rival.pauseTicksLeft = rival.profile.garagePauseTicks;
+        rival.kart = { ...rival.kart, speed: 0 };
+        continue;
+      }
+
       rival.kart = stepRival(rival.kart, track, rival.profile);
       if (rival.kart.y >= track.length) rival.finishTick = tickCount;
 

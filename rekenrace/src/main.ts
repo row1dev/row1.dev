@@ -65,7 +65,7 @@ function boot(): void {
   const menu = createMenu({
     onStart: (chosen) => startRace(chosen),
     onRivalCount: (count) => {
-      settings = { ...settings, opponentCount: count };
+      settings = { ...settings, rivalCount: count };
       store.saveSettings(settings);
       renderMenu();
     },
@@ -78,7 +78,7 @@ function boot(): void {
   });
 
   function renderMenu(): void {
-    menu.render(store.records(), settings.opponentCount, settings.muted);
+    menu.render(store.records(), settings.rivalCount, settings.muted);
   }
 
   function toggleMute(): void {
@@ -110,13 +110,17 @@ function boot(): void {
     race = createRace({
       seed: `${chosen}:${Date.now()}:${raceCount}`,
       circuit: chosen,
-      rivalCount: settings.opponentCount,
+      rivalCount: settings.rivalCount,
     });
     numpad.clear();
     controls.setEnabled(true);
     screens.show('race');
     renderer.resize();
     toast.hidden = true;
+    lastCondition = Infinity;
+    lastRockets = 0;
+    lastHadKart = true;
+    wasGarage = false;
   }
 
   function leaveGarage(): void {
@@ -142,7 +146,9 @@ function boot(): void {
     if (outcome === null) return;
     if (outcome.correct) {
       panel.flashCorrect();
-      sfx.correct();
+      // Je kart terugwinnen klinkt anders dan een vaatje benzine.
+      if (outcome.earned?.kind === 'kart') sfx.turbo();
+      else sfx.correct();
       if (outcome.earned !== null) say(`${outcome.earned.label} +${outcome.earned.amount}`);
     } else {
       panel.flashWrong();
@@ -176,7 +182,11 @@ function boot(): void {
   let lastFrame = performance.now();
   let accumulator = 0;
   let wasGarage = false;
+  /** Vorige stand, om te horen wat er deze frame gebeurd is. */
+  let lastCondition = Infinity;
   let lastRockets = 0;
+  let lastHadKart = true;
+  let bumpCooldown = 0;
 
   function frame(now: number): void {
     requestAnimationFrame(frame);
@@ -225,9 +235,46 @@ function boot(): void {
     if (inGarage) refreshGarage();
     else renderer.draw(view, now);
 
-    // Een treffer meldt zich, zodat je weet waarom je opeens loopt.
-    if (view.player.kart.rockets !== lastRockets) lastRockets = view.player.kart.rockets;
+    reportEvents(view, steps);
+
     if (view.phase === 'finished') finishRace();
+  }
+
+  /**
+   * Laat horen en zien wat er met de kart gebeurt. De engine houdt geen lijst
+   * van gebeurtenissen bij, dus we vergelijken de stand met die van het vorige
+   * frame — dat is genoeg voor geluid en een melding.
+   */
+  function reportEvents(view: ReturnType<Race['view']>, steps: number): void {
+    const kart = view.player.kart;
+    if (bumpCooldown > 0) bumpCooldown -= steps;
+
+    // Een eigen raket die vertrekt: het aantal loopt terug buiten de garage om.
+    if (kart.rockets < lastRockets && !inGarageNow(view)) sfx.launch();
+    lastRockets = kart.rockets;
+
+    // Een flinke hap uit de conditie is een raket; een schrammetje is een botsing.
+    if (lastCondition !== Infinity && kart.condition < lastCondition - 0.5) {
+      const lost = lastCondition - kart.condition;
+      if (lost >= 10) {
+        sfx.hit();
+        say('Geraakt!');
+      } else if (bumpCooldown <= 0) {
+        sfx.bump();
+        bumpCooldown = 20;
+      }
+    }
+    lastCondition = kart.condition;
+
+    if (lastHadKart && !kart.hasKart) {
+      sfx.wreck();
+      say('Je kart is op — ren naar een finishstation');
+    }
+    lastHadKart = kart.hasKart;
+  }
+
+  function inGarageNow(view: ReturnType<Race['view']>): boolean {
+    return view.phase === 'garage';
   }
 
   // ---- Omgeving ----

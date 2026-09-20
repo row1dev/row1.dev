@@ -17,6 +17,14 @@ export interface Sfx {
   wrong(): void;
   turbo(): void;
   finish(): void;
+  /** Een eigen raket die vertrekt. */
+  launch(): void;
+  /** Zelf geraakt worden door een raket. */
+  hit(): void;
+  /** Tegen een steen of de muur aan. */
+  bump(): void;
+  /** De kart is op; vanaf hier loop je. */
+  wreck(): void;
   setMuted(muted: boolean): void;
   readonly muted: boolean;
   /** Voor tests: is er een werkende context? */
@@ -106,6 +114,15 @@ export function createSfx(createContext: ContextFactory = browserContext): Sfx {
       ),
     turbo: () => arpeggio(AUDIO.turbo.steps, AUDIO.turbo.step, AUDIO.turbo.gain, 'square'),
     finish: () => arpeggio(AUDIO.finish.steps, AUDIO.finish.step, AUDIO.finish.gain, 'triangle'),
+    launch: () =>
+      play((start) =>
+        tone(start, AUDIO.launch.from, AUDIO.launch.to, AUDIO.launch.duration, AUDIO.launch.gain, 'sawtooth'),
+      ),
+    hit: () =>
+      play((start) => tone(start, AUDIO.hit.from, AUDIO.hit.to, AUDIO.hit.duration, AUDIO.hit.gain, 'square')),
+    bump: () =>
+      play((start) => tone(start, AUDIO.bump.from, AUDIO.bump.to, AUDIO.bump.duration, AUDIO.bump.gain, 'triangle')),
+    wreck: () => arpeggio(AUDIO.wreck.steps, AUDIO.wreck.step, AUDIO.wreck.gain, 'sawtooth'),
     setMuted: (value: boolean) => {
       muted = value;
       if (master !== null && context !== null) {

@@ -93,17 +93,17 @@ describe('instellingen', () => {
 
   it('bewaart en leest instellingen terug', () => {
     const { records } = store();
-    records.saveSettings({ opponentCount: 3, muted: true, autoSubmit: false });
-    expect(records.settings()).toEqual({ opponentCount: 3, muted: true, autoSubmit: false });
+    records.saveSettings({ rivalCount: 3, muted: true, autoSubmit: false });
+    expect(records.settings()).toEqual({ rivalCount: 3, muted: true, autoSubmit: false });
   });
 
   it('klemt het aantal tegenstanders uit opgeslagen data', () => {
     const storage = memoryStorage();
-    storage.setItem(STORAGE.settingsKey, JSON.stringify({ opponentCount: 99 }));
-    expect(createRecordStore(storage).settings().opponentCount).toBe(3);
+    storage.setItem(STORAGE.settingsKey, JSON.stringify({ rivalCount: 99 }));
+    expect(createRecordStore(storage).settings().rivalCount).toBe(3);
 
-    storage.setItem(STORAGE.settingsKey, JSON.stringify({ opponentCount: 0 }));
-    expect(createRecordStore(storage).settings().opponentCount).toBe(1);
+    storage.setItem(STORAGE.settingsKey, JSON.stringify({ rivalCount: 0 }));
+    expect(createRecordStore(storage).settings().rivalCount).toBe(1);
   });
 
   it('negeert kapotte instellingen', () => {
@@ -115,7 +115,7 @@ describe('instellingen', () => {
   it('wist records en instellingen', () => {
     const { storage, records } = store();
     records.submit('tables', entry(104));
-    records.saveSettings({ opponentCount: 1, muted: true, autoSubmit: true });
+    records.saveSettings({ rivalCount: 1, muted: true, autoSubmit: true });
     records.clear();
     expect(storage.getItem(STORAGE.recordsKey)).toBeNull();
     expect(records.records()).toEqual({});

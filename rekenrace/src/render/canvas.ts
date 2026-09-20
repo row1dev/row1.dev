@@ -5,7 +5,7 @@
  * De renderlaag leest alleen uit de engine en schrijft er nooit in.
  */
 
-import { OPPONENT_COLORS, RIVALS, THEME, TICK_HZ, TRACK, UI } from '../config.ts';
+import { RIVAL_COLORS, RIVALS, THEME, TICK_HZ, TRACK, UI } from '../config.ts';
 
 import type { RaceView } from '../engine/race.ts';
 import type { Track } from '../engine/track.ts';
@@ -212,7 +212,7 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       const rivalIndex = RIVALS.profiles.findIndex((profile) => profile.name === racer.name);
       const skin = racer.isPlayer
         ? BLUE_DOG_SKIN
-        : rivalSkin(OPPONENT_COLORS[Math.max(0, rivalIndex) % OPPONENT_COLORS.length]!);
+        : rivalSkin(RIVAL_COLORS[Math.max(0, rivalIndex) % RIVAL_COLORS.length]!);
 
       ctx.save();
       ctx.translate(sx, sy);

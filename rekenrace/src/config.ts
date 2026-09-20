@@ -9,63 +9,13 @@ export const TICK_MS = 1000 / TICK_HZ;
 /** Maximaal aantal simulatiestappen per frame, zodat een lange pauze niet tot een freeze leidt. */
 export const MAX_TICKS_PER_FRAME = 5;
 
-/**
- * Snelheden staan in baan-eenheden per SECONDE, niet per tick.
- * Per tick wordt v / TICK_HZ bij de afstand opgeteld; de drag-factor is wél per tick.
- * Met vBase = 3.0 duurt een race op basistempo 1000 / 3 = 333 s en ligt de
- * ondergrens op vMax 1000 / 9 = 111 s. Dat sluit aan op de recordtijden in het
- * ontwerp (01:44 tot 03:12). Als eenheden per tick zou een hele race 5,5 seconde
- * duren, dus die lezing klopt niet.
- *
- * Wil je kortere races, draai dan aan `distance` — dat is de bedoelde knop.
- */
+/** Vangnet tegen een race die nooit eindigt. */
 export const RACE = {
-  /** Lengte van een circuit in baan-eenheden, getoond als meters. */
-  distance: 1000,
-  /** Basistempo van de speler, in eenheden per seconde. */
-  vBase: 3.0,
-  /** Harde bovengrens op de snelheid van de speler. */
-  vMax: 9.0,
-  /** Boost bij een goed antwoord, nog te vermenigvuldigen met de snelheidsfactor. */
-  vBoost: 2.5,
-  /** Per tick keert v met deze factor terug naar vBase. */
-  drag: 0.98,
-  /** Snelheid tijdens een strafperiode, als fractie van vBase. */
-  penaltyFactor: 0.4,
-  /** Duur van de strafperiode na een fout antwoord, in ticks. */
-  penaltyTicks: 60,
   /**
-   * Harde bovengrens op de duur van een race, als vangnet tegen een oneindige lus.
-   * Ruim gekozen: wie alles fout beantwoordt zit lang op vBase * penaltyFactor.
+   * Harde bovengrens op de duur van een race. Ruim gekozen: wie zonder benzine
+   * komt te staan legt de rest van de baan te voet af.
    */
   maxTicks: 60 * 900,
-} as const;
-
-/**
- * Afstand per circuit. De Grand Prix rijdt de standaardafstand van 1000; de andere
- * circuits zijn korter, zodat een sterke ronde uitkomt rond de recordtijden uit het
- * ontwerp (Tafelbaan 01:44, Optelcircuit 02:07, Grand Prix 03:12).
- */
-export const CIRCUIT_DISTANCE: Readonly<Record<string, number>> = {
-  tables: 600,
-  addition: 750,
-  division: 700,
-  grandprix: RACE.distance,
-};
-
-export const STREAK = {
-  /** Aantal goede antwoorden op rij dat turbo geeft. */
-  threshold: 5,
-  /** Duur van de turbo in ticks. */
-  ticks: 90,
-} as const;
-
-export const SPEED_FACTOR = {
-  /** snelheidsfactor = clamp(base - reactietijd / divisor, min, max) */
-  base: 1.6,
-  divisor: 5,
-  min: 0.4,
-  max: 1.6,
 } as const;
 
 export const DIFFICULTY = {
@@ -80,17 +30,6 @@ export const DIFFICULTY = {
   accuracyDown: 0.6,
   /** Mediane reactietijd in seconden waaronder het niveau omhoog mag. */
   medianTimeUp: 3,
-} as const;
-
-export const OPPONENTS = {
-  /** Basistempo van een tegenstander in eenheden per seconde, per moeilijkheidsindex. */
-  pace: [2.6, 3.1, 3.6] as const,
-  /** Amplitude van de sinusvariatie op het tempo, zodat een tegenstander niet robotachtig rijdt. */
-  paceWobble: 0.25,
-  /** Periode van die variatie in ticks. */
-  wobbleTicks: 240,
-  minCount: 1,
-  maxCount: 3,
 } as const;
 
 export const UI = {
@@ -119,12 +58,22 @@ export const AUDIO = {
   turbo: { steps: [523.25, 659.25, 783.99, 1046.5], step: 0.07, gain: 0.55 },
   /** Kort fanfare-motief aan de finish. */
   finish: { steps: [523.25, 659.25, 783.99, 1046.5, 1046.5], step: 0.13, gain: 0.6 },
+
+  /** Een raket die vertrekt: een korte veeg omhoog. */
+  launch: { from: 220, to: 880, duration: 0.18, gain: 0.5 },
+  /** Zelf geraakt worden: een lage klap. */
+  hit: { from: 180, to: 60, duration: 0.35, gain: 0.75 },
+  /** Tegen een steen of de muur: kort en dof. */
+  bump: { from: 140, to: 80, duration: 0.09, gain: 0.45 },
+  /** De kart is op: een zakkend drieklankje. */
+  wreck: { steps: [440, 330, 220, 165], step: 0.1, gain: 0.6 },
 } as const;
 
 export const STORAGE = {
   /** Versienummer zit in de key, zodat een formaatwijziging oude records niet stukmaakt. */
   recordsKey: 'rekenrace.records.v1',
-  settingsKey: 'rekenrace.settings.v1',
+  // v2: het aantal tegenstanders heet nu rivalCount in plaats van opponentCount.
+  settingsKey: 'rekenrace.settings.v2',
 } as const;
 
 /**
@@ -132,20 +81,8 @@ export const STORAGE = {
  * bron putten en er nergens een losse hex-waarde rondslingert.
  */
 export const THEME = {
-  skyTop: '#1b3a6b',
-  skyBottom: '#5aa9e6',
-  sun: '#ffe08a',
-  hillsFar: '#2f5d7c',
-  hillsNear: '#3f7d5a',
-  cloud: '#eaf4ff',
-  trackTop: '#6b5a44',
-  trackBottom: '#4a3e2f',
-  trackLine: '#f2e9d8',
-  grass: '#4e8f5e',
-
   /** Woestijn van bovenaf: zand met rotswanden langs de baan. */
   sand: '#e8a03c',
-  sandDark: '#d18a2c',
   canyon: '#6a4b35',
   canyonEdge: '#8d6647',
   garageFloor: '#5b5b66',
@@ -154,23 +91,13 @@ export const THEME = {
   dog: '#3d7de0',
   dogDark: '#2a5ba8',
   dogBelly: '#bcd8ff',
-  correct: '#3ddc84',
   wrong: '#ff5a5a',
   turbo: '#ffcf3d',
   ink: '#0e1726',
 } as const;
 
-/** Tegenstanders krijgen elk hun eigen kleur, in dezelfde volgorde als OPPONENTS.pace. */
-export const OPPONENT_COLORS = ['#e0913d', '#c65ad6', '#57c9c1'] as const;
-
-export const PARALLAX = {
-  /** Snelheid van de drie achtergrondlagen ten opzichte van de baan. */
-  hillsFar: 0.15,
-  hillsNear: 0.35,
-  clouds: 0.07,
-  /** Hoeveel de baan zelf meeschuift per baan-eenheid, in pixels. */
-  trackScale: 1.4,
-} as const;
+/** Elke tegenstander zijn eigen kleur, in dezelfde volgorde als RIVALS.profiles. */
+export const RIVAL_COLORS = ['#e0913d', '#c65ad6', '#57c9c1'] as const;
 
 /* ===========================================================================
  * Vanaf hier het nieuwe spel: een top-down racer waarin de sommen bij de
@@ -183,7 +110,11 @@ export const PARALLAX = {
  * eromheen. Afstanden in baan-eenheden, waarbij y de rijrichting is.
  */
 export const TRACK = {
-  length: 12000,
+  /**
+   * Zo lang dat er vijf garages op passen. Langer maakt een race van een
+   * kwartier voor wie nog moet nadenken over de sommen.
+   */
+  length: 9000,
 
   /**
    * Breedte van de corridor: basis plus een rustige variatie. Ruim genoeg dat er
@@ -261,7 +192,12 @@ export const KART = {
 
   turboTicks: 90,
 
-  maxFuel: 99,
+  /**
+   * Een volle tank haalt de finish niet: daarmee staat vast dat je onderweg
+   * minstens twee keer moet tanken, hoe goed je ook rijdt. De test in
+   * scaffold.test.ts bewaakt dat tegen de lengte van de baan.
+   */
+  maxFuel: 60,
   startFuel: 30,
   /** Hoeveel baan-eenheden je aflegt op één eenheid benzine. */
   unitsPerFuel: 120,
@@ -322,17 +258,23 @@ export const GARAGE = {
 } as const;
 
 /**
- * De tegenstanders. Ze rijden de baan door zonder te stoppen: de garage is jouw
- * afweging, niet die van hen. Hun tempo ligt daarom onder dat van een kart op
- * volle snelheid, zodat je de tijd die je binnen verliest kunt terugrijden.
+ * De tegenstanders.
+ *
+ * Ze stoppen bij elke Rekengarage om bij te tanken, net als jij, maar ze rekenen
+ * niet: ze staan er een vaste tijd. Dáár wordt de race beslist. Reken je sneller
+ * dan hun pauze, dan win je bij elke garage tijd; doe je er langer over, dan
+ * verlies je hem. Zonder die pauze kon je nooit winnen: stoppen voor benzine is
+ * verplicht, en elke seconde binnen was er één cadeau aan het veld.
+ *
+ * Een zwakkere rijder staat langer stil, net zoals hij ook langzamer rijdt.
  *
  * Namen alliteren, net als in het ontwerp, maar zijn van onszelf.
  */
 export const RIVALS = {
   profiles: [
-    { name: 'Bram de Bever', speedFactor: 0.8, lookahead: 260, skill: 0.7, rocketEverySeconds: 15 },
-    { name: 'Kaat de Kraai', speedFactor: 0.86, lookahead: 300, skill: 0.85, rocketEverySeconds: 12 },
-    { name: 'Sil de Slang', speedFactor: 0.92, lookahead: 340, skill: 0.95, rocketEverySeconds: 9 },
+    { name: 'Bram de Bever', speedFactor: 0.8, lookahead: 260, skill: 0.7, rocketEverySeconds: 15, garagePauseSeconds: 11 },
+    { name: 'Kaat de Kraai', speedFactor: 0.86, lookahead: 300, skill: 0.85, rocketEverySeconds: 12, garagePauseSeconds: 9 },
+    { name: 'Sil de Slang', speedFactor: 0.92, lookahead: 340, skill: 0.95, rocketEverySeconds: 9, garagePauseSeconds: 7.5 },
   ],
 
   /** Kleiner verschil dan dit wordt niet bijgestuurd; anders slingert de kart. */

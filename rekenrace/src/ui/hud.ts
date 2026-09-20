@@ -3,7 +3,7 @@
  * somvak in de garage. Leest alleen uit de engine.
  */
 
-import { KART, OPPONENT_COLORS, RIVALS, UI } from '../config.ts';
+import { KART, RIVAL_COLORS, RIVALS, UI } from '../config.ts';
 import type { GarageSession } from '../engine/garage.ts';
 import type { RaceView } from '../engine/race.ts';
 
@@ -51,7 +51,7 @@ function need<T extends Element>(selector: string, root: ParentNode = document):
 export function colorFor(name: string, isPlayer: boolean): string {
   if (isPlayer) return '#f2f6ff';
   const index = RIVALS.profiles.findIndex((profile) => profile.name === name);
-  return OPPONENT_COLORS[Math.max(0, index) % OPPONENT_COLORS.length] ?? '#ffffff';
+  return RIVAL_COLORS[Math.max(0, index) % RIVAL_COLORS.length] ?? '#ffffff';
 }
 
 export function createHud(): Hud {

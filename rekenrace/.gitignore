@@ -5,3 +5,4 @@ dist/
 # Lokale browser-checks, geen onderdeel van het project
 play.mjs
 diag.mjs
+finish.mjs
