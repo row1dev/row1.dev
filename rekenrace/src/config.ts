@@ -110,3 +110,39 @@ export const STORAGE = {
   recordsKey: 'rekenrace.records.v1',
   settingsKey: 'rekenrace.settings.v1',
 } as const;
+
+/**
+ * Kleuren van de baan en de sprites. Staan hier zodat canvas en CSS uit dezelfde
+ * bron putten en er nergens een losse hex-waarde rondslingert.
+ */
+export const THEME = {
+  skyTop: '#1b3a6b',
+  skyBottom: '#5aa9e6',
+  sun: '#ffe08a',
+  hillsFar: '#2f5d7c',
+  hillsNear: '#3f7d5a',
+  cloud: '#eaf4ff',
+  trackTop: '#6b5a44',
+  trackBottom: '#4a3e2f',
+  trackLine: '#f2e9d8',
+  grass: '#4e8f5e',
+  dog: '#3d7de0',
+  dogDark: '#2a5ba8',
+  dogBelly: '#bcd8ff',
+  correct: '#3ddc84',
+  wrong: '#ff5a5a',
+  turbo: '#ffcf3d',
+  ink: '#0e1726',
+} as const;
+
+/** Tegenstanders krijgen elk hun eigen kleur, in dezelfde volgorde als OPPONENTS.pace. */
+export const OPPONENT_COLORS = ['#e0913d', '#c65ad6', '#57c9c1'] as const;
+
+export const PARALLAX = {
+  /** Snelheid van de drie achtergrondlagen ten opzichte van de baan. */
+  hillsFar: 0.15,
+  hillsNear: 0.35,
+  clouds: 0.07,
+  /** Hoeveel de baan zelf meeschuift per baan-eenheid, in pixels. */
+  trackScale: 1.4,
+} as const;

@@ -15,6 +15,12 @@ export interface Racer {
   readonly id: string;
   readonly name: string;
   readonly isPlayer: boolean;
+  /**
+   * Vaste baan van deze racer, van 0 tot en met het aantal racers - 1.
+   * Anders dan `position` verandert dit nooit, zodat de renderlaag en de HUD
+   * per racer een vaste rijstrook en kleur kunnen aanhouden.
+   */
+  readonly lane: number;
   /** Afgelegde afstand in baan-eenheden. */
   readonly distance: number;
   /** Tick waarop deze racer over de finish kwam, of null zolang dat niet zo is. */
@@ -169,8 +175,23 @@ export function createRace(options: RaceOptions): Race {
    */
   const rankRacers = (): Racer[] => {
     const entries = [
-      { id: 'player', name: 'Blue Dog', isPlayer: true, distance: playerDistance, finishTick: playerFinishTick },
-      ...opponents.map((o) => ({ id: o.id, name: o.name, isPlayer: false, distance: o.distance, finishTick: o.finishTick })),
+      // De speler rijdt altijd in de voorste baan, de tegenstanders daarachter.
+      {
+        id: 'player',
+        name: 'Blue Dog',
+        isPlayer: true,
+        lane: opponents.length,
+        distance: playerDistance,
+        finishTick: playerFinishTick,
+      },
+      ...opponents.map((o, i) => ({
+        id: o.id,
+        name: o.name,
+        isPlayer: false,
+        lane: i,
+        distance: o.distance,
+        finishTick: o.finishTick,
+      })),
     ];
     entries.sort((a, b) => {
       if (a.finishTick !== null && b.finishTick !== null) return a.finishTick - b.finishTick;

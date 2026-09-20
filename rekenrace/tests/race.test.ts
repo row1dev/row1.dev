@@ -279,3 +279,28 @@ describe('race, circuitafstanden', () => {
     }
   });
 });
+
+describe('race, rijstroken', () => {
+  it('geeft elke racer een vaste rijstrook die niet met de positie meewisselt', () => {
+    const race = createRace({ seed: 'strook', circuit: 'tables', opponentCount: 3 });
+    const laneById = new Map(race.view().racers.map((r) => [r.id, r.lane]));
+    expect(new Set(laneById.values()).size).toBe(4);
+
+    // Laat het veld flink door elkaar lopen en controleer dat de stroken vastliggen.
+    for (let i = 0; i < 600; i += 1) {
+      if (i % 37 === 0) race.answer(race.view().question.answer);
+      race.tick();
+      for (const racer of race.view().racers) {
+        expect(racer.lane).toBe(laneById.get(racer.id));
+      }
+    }
+  });
+
+  it('zet de speler in de voorste rijstrook', () => {
+    for (const count of [1, 2, 3]) {
+      const view = createRace({ seed: 'voorste', circuit: 'tables', opponentCount: count }).view();
+      expect(view.player.lane).toBe(count);
+      expect(Math.max(...view.racers.map((r) => r.lane))).toBe(count);
+    }
+  });
+});

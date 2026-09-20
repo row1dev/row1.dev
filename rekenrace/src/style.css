@@ -1,0 +1,522 @@
+/*
+ * Ontworpen voor een telefoon in landscape, referentie 844 bij 390 CSS-pixels.
+ * De vier banden van het racescherm staan op 12 / 46 / 14 / 28 procent hoogte.
+ */
+
+:root {
+  --ink: #0e1726;
+  --panel: #16233a;
+  --panel-soft: #1e2f4d;
+  --line: #2c4166;
+  --text: #f2f6ff;
+  --text-dim: #9db0d0;
+  --accent: #3d7de0;
+  --correct: #3ddc84;
+  --wrong: #ff5a5a;
+  --turbo: #ffcf3d;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Geen tekstselectie of dubbeltik-zoom tijdens het spelen. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Raakvlakken minimaal 48 bij 48 pixels. */
+  min-width: 48px;
+  min-height: 48px;
+}
+
+#app {
+  position: relative;
+  height: 100dvh;
+  width: 100vw;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen[hidden] {
+  display: none;
+}
+
+/* ---------- Startscherm ---------- */
+
+#screen-menu {
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  padding: max(12px, var(--safe-top)) max(16px, var(--safe-right)) max(12px, var(--safe-bottom))
+    max(16px, var(--safe-left));
+  background: radial-gradient(circle at 50% 0%, #24406e 0%, var(--ink) 70%);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(22px, 5.5vh, 40px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--text);
+  text-shadow: 0 2px 0 var(--accent);
+}
+
+.circuits {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.circuit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  min-height: 84px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  transition: transform 90ms ease, border-color 90ms ease;
+}
+
+.circuit:active {
+  transform: scale(0.97);
+  border-color: var(--accent);
+}
+
+.circuit-name {
+  font-size: clamp(13px, 2.4vh, 18px);
+  font-weight: 700;
+}
+
+.circuit-record {
+  font-size: clamp(11px, 1.9vh, 14px);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.menu-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.field-label {
+  font-size: clamp(12px, 2vh, 15px);
+  color: var(--text-dim);
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  font-size: clamp(13px, 2.2vh, 16px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.chip[aria-pressed='true'],
+.chip.selected {
+  border-color: var(--accent);
+  background: var(--panel-soft);
+}
+
+/* ---------- Racescherm ---------- */
+
+#screen-race {
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+.hud {
+  position: relative;
+  flex: 0 0 12%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--line);
+  font-size: clamp(11px, 2vh, 15px);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-position {
+  font-weight: 700;
+  min-width: 4.5em;
+}
+
+.hud-progress {
+  position: relative;
+  flex: 1 1 auto;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--panel-soft);
+  overflow: visible;
+}
+
+.hud-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.hud-markers {
+  position: absolute;
+  inset: 0;
+}
+
+.hud-marker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  border: 2px solid var(--panel);
+}
+
+.hud-marker.player {
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: var(--text);
+}
+
+.hud-distance,
+.hud-time {
+  min-width: 4.5em;
+  text-align: right;
+  color: var(--text-dim);
+}
+
+.hud-streak {
+  min-width: 6em;
+  text-align: right;
+  font-weight: 700;
+}
+
+.hud-streak.hot {
+  color: var(--turbo);
+}
+
+.hud-mute {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.hud-turbo {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 2px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 207, 61, 0.2);
+}
+
+.hud-turbo[hidden] {
+  display: none;
+}
+
+.hud-turbo-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--turbo);
+}
+
+.track {
+  flex: 1 1 46%;
+  position: relative;
+  min-height: 0;
+}
+
+#track-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.question {
+  flex: 0 0 14%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--panel);
+  border-top: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
+}
+
+.question-text {
+  /* Minimaal 32 px, zoals het ontwerp voorschrijft. */
+  font-size: max(32px, min(6.5vh, 46px));
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.answer-box {
+  min-width: 3.2em;
+  min-height: 1.5em;
+  padding: 2px 12px;
+  border-radius: 12px;
+  background: var(--ink);
+  border: 3px solid var(--line);
+  font-size: max(32px, min(6.5vh, 46px));
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.answer-box.correct {
+  border-color: var(--correct);
+  background: rgba(61, 220, 132, 0.18);
+  transform: translateY(-6px) scale(1.06);
+}
+
+.answer-box.wrong {
+  border-color: var(--wrong);
+  background: rgba(255, 90, 90, 0.22);
+  animation: flash 320ms ease;
+}
+
+.answer-box.reveal {
+  border-color: var(--wrong);
+  color: var(--wrong);
+}
+
+@keyframes flash {
+  0%,
+  100% {
+    background: rgba(255, 90, 90, 0.22);
+  }
+  50% {
+    background: rgba(255, 90, 90, 0.6);
+  }
+}
+
+/* ---------- Numpad ---------- */
+
+.numpad {
+  flex: 0 0 28%;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--ink);
+}
+
+.numpad-group {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+}
+
+.key {
+  flex: 1 1 0;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  font-size: clamp(18px, 4.2vh, 28px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: transform 70ms ease, background-color 70ms ease;
+}
+
+.key:active,
+.key.pressed {
+  transform: scale(0.94);
+  background: var(--panel-soft);
+}
+
+/* C en OK aan de buitenranden: dat zijn de duimposities in landscape. */
+.key-clear,
+.key-ok {
+  flex: 0 0 15%;
+  font-size: clamp(15px, 3vh, 22px);
+}
+
+.key-clear {
+  background: #3a2230;
+  border-color: #5c3247;
+}
+
+.key-ok {
+  background: #1d4a32;
+  border-color: #2f7a52;
+}
+
+.numpad.disabled .key {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ---------- Resultaatscherm ---------- */
+
+#screen-result {
+  align-items: center;
+  justify-content: center;
+  gap: 3%;
+  padding: max(12px, var(--safe-top)) max(16px, var(--safe-right)) max(12px, var(--safe-bottom))
+    max(16px, var(--safe-left));
+  background: radial-gradient(circle at 50% 0%, #24406e 0%, var(--ink) 70%);
+  text-align: center;
+}
+
+.result-heading {
+  margin: 0;
+  font-size: clamp(20px, 5vh, 34px);
+  font-variant-numeric: tabular-nums;
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 20px;
+  margin: 0;
+  font-size: clamp(12px, 2.4vh, 17px);
+}
+
+.result-stats dt {
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.result-stats dd {
+  margin: 0;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-record {
+  margin: 0;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(255, 207, 61, 0.15);
+  color: var(--turbo);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: clamp(12px, 2.4vh, 16px);
+}
+
+.result-record[hidden] {
+  display: none;
+}
+
+.result-buttons {
+  display: flex;
+  gap: 16px;
+}
+
+.big-button {
+  padding: 0 28px;
+  min-height: 56px;
+  border-radius: 14px;
+  background: var(--accent);
+  font-size: clamp(14px, 2.8vh, 19px);
+  font-weight: 700;
+}
+
+.big-button.ghost {
+  background: var(--panel);
+  border: 2px solid var(--line);
+}
+
+/* ---------- Draai-je-telefoon ---------- */
+
+.portrait-hint {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--ink);
+  color: var(--text);
+  font-size: clamp(16px, 4vw, 24px);
+  font-weight: 700;
+}
+
+.portrait-hint[hidden] {
+  display: none;
+}
+
+.portrait-hint p {
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
