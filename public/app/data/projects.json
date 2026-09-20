@@ -36,5 +36,18 @@
     ],
     "url": "https://row1.dev/rowslow/",
     "repo": "private"
+  },
+  {
+    "name": "rekenrace",
+    "description": "Blue Dog Rekenrace: racespel voor de telefoon waarin je snelheid bepaald wordt door hoe snel en goed je rekensommen oplost. Vite en TypeScript, geen backend, offline speelbaar vanaf het homescreen.",
+    "status": "wip",
+    "tags": [
+      "typescript",
+      "vite",
+      "canvas",
+      "pwa"
+    ],
+    "url": "https://row1.dev/rekenrace/",
+    "repo": "public"
   }
 ]
