@@ -237,3 +237,36 @@ export function applyRocketHit(kart: Kart): Kart {
     onFoot: !hasKart || kart.fuel <= 0,
   };
 }
+
+/** Wat één goed beantwoorde som bij de Rekengarage oplevert. */
+export type SupplyKind = 'fuel' | 'rocket' | 'boost' | 'repair' | 'kart';
+
+export interface Supply {
+  readonly kind: SupplyKind;
+  readonly amount: number;
+  /** Nederlandse naam, zoals hij op de kaart in het rekenscherm staat. */
+  readonly label: string;
+}
+
+/** Schrijft een voorraaditem bij op de kart. Puur, net als de rest. */
+export function applySupply(kart: Kart, supply: Supply): Kart {
+  switch (supply.kind) {
+    case 'fuel': {
+      const fuel = clamp(kart.fuel + supply.amount, 0, KART.maxFuel);
+      return { ...kart, fuel, onFoot: !kart.hasKart || fuel <= 0 };
+    }
+    case 'rocket':
+      return { ...kart, rockets: kart.rockets + supply.amount };
+    case 'boost':
+      return { ...kart, boosts: kart.boosts + supply.amount };
+    case 'repair': {
+      const condition = clamp(kart.condition + supply.amount, 0, KART.maxCondition);
+      // Oplappen geeft je de kart niet terug; daarvoor moet je naar een finishstation.
+      return { ...kart, condition };
+    }
+    case 'kart': {
+      const condition = Math.max(kart.condition, KART.maxCondition);
+      return { ...kart, hasKart: true, condition, onFoot: kart.fuel <= 0 };
+    }
+  }
+}

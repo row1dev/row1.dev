@@ -274,3 +274,29 @@ export const KART = {
    */
   cactusSpeedKeep: 0.45,
 } as const;
+
+/**
+ * De Rekengarage. Elke som die je goed hebt levert één voorraaditem op, en wat
+ * je aangeboden krijgt hangt af van waar je het krapst in zit: een lege tank
+ * levert benzine, een gedeukte kart een reparatie.
+ */
+export const GARAGE = {
+  /** Onder deze standen gaat voorrang naar benzine of naar een reparatie. */
+  lowFuel: 20,
+  lowCondition: 55,
+
+  /** Een vat benzine is 10 of 15, net als in het ontwerp. */
+  fuelAmounts: [10, 15] as const,
+  repairAmount: 25,
+  rocketAmount: 1,
+  boostAmount: 1,
+
+  /**
+   * Je kart terugwinnen kan alleen bij een finishstation, en kost een som die
+   * een niveau hoger ligt dan je normaal krijgt.
+   */
+  kartLevelBump: 1,
+
+  /** Hoe vaak elk item aan de beurt komt als je nergens krap in zit. */
+  weights: { fuel: 3, rocket: 3, boost: 2 } as const,
+} as const;
