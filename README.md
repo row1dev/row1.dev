@@ -8,6 +8,7 @@ Landingspagina + afgeschermde projectenlijst voor [row1.dev](https://row1.dev).
 - `public/assets/` — CSS/JS, geen build-stap nodig
 - `wrangler.jsonc` — Cloudflare Workers static-assets config (deploy-doelwit: `public/`)
 - `champagne/` — Next.js-app voor [champagne.row1.dev](https://champagne.row1.dev), deploy op Vercel (eigen [README](champagne/README.md))
+- `rekenrace/` — Blue Dog Rekenrace, een Vite-spel dat als statische map onder `public/rekenrace/` gedeployed wordt (eigen [README](rekenrace/README.md))
 
 ## Lokaal draaien
 
@@ -32,13 +33,30 @@ een pad van deze site:
 Links binnen zo'n map zijn absoluut vanaf de root (`/rowslow/privacy/`). De broncode van
 de apps zelf staat niet hier maar in een eigen repository.
 
-## champagne
+## Apps in deze repo
 
-De enige app die wél in deze repo staat: [`champagne/`](champagne/) is een
-Next.js-app met Supabase erachter, los van de statische site en met een eigen
-deploy op Vercel (root directory `champagne`). Zie
+De meeste projecten staan in een eigen private repository. Twee staan hier wel:
+
+### champagne
+
+[`champagne/`](champagne/) is een Next.js-app met Supabase erachter, los van de
+statische site en met een eigen deploy op Vercel (root directory `champagne`). Zie
 [`champagne/README.md`](champagne/README.md) voor de omgevingsvariabelen en het
 Supabase-schema.
+
+### rekenrace
+
+[`rekenrace/`](rekenrace/) is Blue Dog Rekenrace: een racespel op de telefoon waarin je
+snelheid bepaald wordt door hoe snel je rekensommen oplost. Vite en TypeScript, geen
+backend, offline speelbaar als PWA. Zie [`rekenrace/README.md`](rekenrace/README.md).
+
+Anders dan champagne krijgt dit geen eigen deploy: de build is een statische map die
+onder `public/rekenrace/` gaat en dus meelift op de Cloudflare-deploy van `public/`.
+
+```bash
+cd rekenrace && npm install && npm run build
+cp -r dist/. ../public/rekenrace/
+```
 
 ## Een project toevoegen
 
@@ -128,7 +146,8 @@ officiële [Cloudflare One docs](https://developers.cloudflare.com/cloudflare-on
 ## Code-privacy
 
 Deze repo is publiek (nodig om als portfolio te tonen en simpel te deployen).
-De daadwerkelijke projecten staan in aparte **private** repositories onder
+De meeste projecten staan in aparte **private** repositories onder
 [github.com/row1dev](https://github.com/row1dev) — hun broncode is dus niet
-zichtbaar voor anderen. Zie [`LICENSE`](LICENSE) voor de voorwaarden van deze
-landingspagina-code zelf.
+zichtbaar voor anderen. Uitzondering zijn `champagne/` en `rekenrace/`, die wél
+hier staan en dus openbaar zijn. Zie [`LICENSE`](LICENSE) voor de voorwaarden van
+de code in deze repo.
