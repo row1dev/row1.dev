@@ -5,7 +5,7 @@
  * Zie de plugin in vite.config.ts.
  */
 
-const VERSION = 'e42d1902cb0b';
+const VERSION = '5606a682593e';
 const CACHE = `rekenrace-${VERSION}`;
 const PRECACHE = [
   "./",
@@ -15,8 +15,8 @@ const PRECACHE = [
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/icon-maskable-512.png",
-  "assets/index-BRRByNY9.css",
-  "assets/index-CrhUNIBf.js"
+  "assets/index-Dh2Kgkad.css",
+  "assets/index-B5sSmrN1.js"
 ];
 
 self.addEventListener('install', (event) => {
