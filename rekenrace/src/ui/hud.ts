@@ -35,6 +35,11 @@ export function formatPercent(fraction: number): string {
   return `${Math.round(fraction * 100)}%`;
 }
 
+/** Schrijft alleen als de tekst echt verandert. */
+function write(element: HTMLElement, text: string): void {
+  if (element.textContent !== text) element.textContent = text;
+}
+
 function need<T extends Element>(root: ParentNode, selector: string): T {
   const element = root.querySelector<T>(selector);
   if (element === null) throw new Error(`element ontbreekt: ${selector}`);
@@ -83,11 +88,13 @@ export function createHud(root: HTMLElement): Hud {
       marker.style.left = `${(racer.distance / view.distance) * 100}%`;
     }
 
-    position.textContent = `P${view.player.position}/${view.racers.length}`;
+    // Tekst alleen herschrijven als hij verandert: scheelt zestig DOM-schrijfacties
+    // per seconde per veld, wat op een telefoon merkbaar is.
+    write(position, `P${view.player.position}/${view.racers.length}`);
     fill.style.width = `${(view.player.distance / view.distance) * 100}%`;
-    distance.textContent = `${Math.round(view.player.distance)}m`;
-    time.textContent = formatTime(view.seconds);
-    streak.textContent = `streak x${view.streak}`;
+    write(distance, `${Math.round(view.player.distance)}m`);
+    write(time, formatTime(view.seconds));
+    write(streak, `streak x${view.streak}`);
     streak.classList.toggle('hot', view.streak >= STREAK.threshold);
 
     const turboActive = view.turboTicksLeft > 0;
@@ -114,11 +121,11 @@ export function createQuestionPanel(root: HTMLElement): QuestionPanel {
   };
 
   const update = (view: RaceView, entry: string): void => {
-    text.textContent = `${view.question.text} =`;
+    write(text, `${view.question.text} =`);
     const revealing = view.phase === 'reveal' || (view.phase === 'finished' && view.revealTicksLeft > 0);
     box.classList.toggle('reveal', revealing);
     // Tijdens de reveal staat het juiste antwoord in het vak, niet de invoer.
-    box.textContent = revealing ? String(view.question.answer) : entry;
+    write(box, revealing ? String(view.question.answer) : entry);
   };
 
   const flashCorrect = (): void => {

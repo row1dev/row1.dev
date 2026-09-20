@@ -5,3 +5,4 @@ dist/
 # Lokale browser-smoketest, geen onderdeel van het project
 smoke.mjs
 measure.mjs
+verify.mjs

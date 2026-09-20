@@ -170,6 +170,7 @@ function boot(): void {
   // ---- Omgeving ----
 
   const syncPause = (): void => {
+    // Staand of op de achtergrond: de simulatie staat stil.
     const portrait = portraitHint.update();
     paused = portrait || document.visibilityState === 'hidden';
   };
@@ -182,8 +183,30 @@ function boot(): void {
     renderer.resize();
     syncPause();
   });
+  // Het canvas verandert ook van maat als de HUD herschikt zonder dat het venster
+  // van formaat wijzigt, bijvoorbeeld als de adresbalk van de browser wegschuift.
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(() => renderer.resize()).observe(canvas);
+  }
+
   document.addEventListener('visibilitychange', syncPause);
+  // Ook pauzeren als de app naar de achtergrond gaat zonder visibilitychange.
+  window.addEventListener('pagehide', syncPause);
+  window.addEventListener('blur', syncPause);
+  window.addEventListener('focus', syncPause);
+
   need<HTMLButtonElement>('#hud-mute').addEventListener('click', () => toggleMute());
+
+  // Geen dubbeltik-zoom, geen pinch-zoom en geen contextmenu tijdens het spelen.
+  document.addEventListener('gesturestart', (event) => event.preventDefault());
+  document.addEventListener('contextmenu', (event) => event.preventDefault());
+  document.addEventListener(
+    'touchmove',
+    (event) => {
+      if (event.touches.length > 1) event.preventDefault();
+    },
+    { passive: false },
+  );
 
   // Een fysiek toetsenbord is handig op de desktop en kost bijna niets.
   window.addEventListener('keydown', (event) => {
