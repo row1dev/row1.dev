@@ -238,4 +238,19 @@ function boot(): void {
   requestAnimationFrame(frame);
 }
 
+/**
+ * Registreert de service worker zodat de app vanaf het homescreen offline start.
+ * Alleen in een productiebuild: tijdens ontwikkeling zit een worker in de weg.
+ */
+function registerServiceWorker(): void {
+  if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+  window.addEventListener('load', () => {
+    // Relatief ten opzichte van de pagina, zodat het ook onder /rekenrace/ werkt.
+    void navigator.serviceWorker.register(new URL('sw.js', window.location.href), { scope: './' }).catch(() => {
+      // Geen worker betekent alleen: niet offline speelbaar. Het spel werkt verder.
+    });
+  });
+}
+
 boot();
+registerServiceWorker();
